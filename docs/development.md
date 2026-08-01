@@ -2,13 +2,25 @@
 
 Kal_flow supports GitHub Codespaces, VS Code Dev Containers, and a local Docker Compose workflow.
 
-## Codespaces or Dev Containers
+## Private Codespaces preview
 
-1. Copy `.env.example` to `.env`; the committed values are development-only.
-2. Open the repository in a Codespace or choose **Dev Containers: Reopen in Container**.
-3. Wait for the post-create command to install the pnpm workspace and validate the foundation.
+1. In the private repository, select **Code → Codespaces → Create codespace on main**.
+2. Wait for the post-create and post-start tasks to finish. The first start installs dependencies, validates the repository, applies Prisma migrations, configures the Keycloak callback, and launches the web, API, and worker processes.
+3. Open the forwarded **Kal_flow private preview** port when Codespaces prompts you. Port 3000 opens automatically and remains private to authenticated GitHub users who can access the Codespace.
+4. Sign in with `admin@kalflow.local` and the temporary password `ChangeMe123!`. Keycloak requires a password change on first login.
 
-The environment starts PostgreSQL, a separate PostgreSQL instance for Keycloak, Redis, MinIO, and Keycloak. Ports 3000, 4000, 8080, and 9001 are forwarded for the web app, API, identity console, and object-storage console.
+The preview URL is unique to each Codespace. `scripts/configure-codespaces.mjs` writes that URL and a generated Auth.js secret only to the ignored local `.env`, then updates the development Keycloak client's exact redirect URI. PostgreSQL, Redis, MinIO, Keycloak, API, and web ports remain private.
+
+Useful commands inside the Codespace:
+
+```bash
+pnpm preview:logs
+pnpm preview:stop
+pnpm preview:start
+pnpm check
+```
+
+Rebuilding the Dev Container preserves Docker volumes. Running `pnpm infra:reset` intentionally deletes all local preview data.
 
 ## Local Docker workflow
 
