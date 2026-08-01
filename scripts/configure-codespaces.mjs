@@ -116,8 +116,11 @@ async function configureKeycloak(env) {
       rootUrl: env.WEB_URL,
       baseUrl: env.WEB_URL,
       redirectUris: [callback],
-      postLogoutRedirectUris: [`${env.WEB_URL}/*`],
       webOrigins: [env.WEB_URL],
+      attributes: {
+        ...client.attributes,
+        'post.logout.redirect.uris': `${env.WEB_URL}/*`,
+      },
     }),
   });
   if (!response.ok) throw new Error(`Unable to configure the Keycloak web client (${response.status})`);
