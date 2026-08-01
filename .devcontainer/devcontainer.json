@@ -1,0 +1,40 @@
+{
+  "name": "Kal_flow CMS",
+  "dockerComposeFile": "../infrastructure/docker/compose.yaml",
+  "service": "workspace",
+  "workspaceFolder": "/workspaces/Kal_flow_CMS",
+  "runServices": [
+    "postgres",
+    "keycloak-postgres",
+    "redis",
+    "minio",
+    "keycloak"
+  ],
+  "shutdownAction": "stopCompose",
+  "postCreateCommand": "corepack enable && pnpm install --frozen-lockfile && pnpm check",
+  "forwardPorts": [3000, 4000, 5432, 6379, 8080, 9000, 9001],
+  "portsAttributes": {
+    "3000": { "label": "Kal_flow web", "onAutoForward": "notify" },
+    "4000": { "label": "Kal_flow API", "onAutoForward": "notify" },
+    "8080": { "label": "Keycloak", "onAutoForward": "notify" },
+    "9001": { "label": "MinIO console", "onAutoForward": "notify" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "Prisma.prisma",
+        "bradlc.vscode-tailwindcss",
+        "ms-azuretools.vscode-docker",
+        "EditorConfig.EditorConfig"
+      ],
+      "settings": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "files.eol": "\n"
+      }
+    }
+  },
+  "remoteUser": "node"
+}

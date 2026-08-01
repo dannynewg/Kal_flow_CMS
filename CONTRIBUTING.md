@@ -2,6 +2,14 @@
 
 Thank you for contributing to Kal_flow.
 
+## Local setup
+
+Use a Codespace/Dev Container or follow [the development guide](docs/development.md). Before opening a pull request, run:
+
+```bash
+pnpm check
+```
+
 ## Workflow
 
 1. Create a focused branch from `main`.

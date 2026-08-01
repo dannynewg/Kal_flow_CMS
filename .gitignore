@@ -2,21 +2,21 @@
 .env
 .env.*
 !.env.example
+*.pem
+*.key
 
-# Dependencies
+# Dependencies and package-manager state
 node_modules/
-vendor/
-.venv/
-venv/
-__pycache__/
-*.py[cod]
+.pnpm-store/
+pnpm-debug.log*
 
-# Build output
+# Build and generated output
 dist/
 build/
 .next/
-.nuxt/
+.turbo/
 coverage/
+packages/database/generated/
 
 # Runtime and temporary files
 *.log
@@ -24,11 +24,6 @@ logs/
 tmp/
 temp/
 .cache/
-
-# Uploaded/private documents
-storage/*
-!storage/.gitkeep
-!storage/README.md
 
 # IDE and OS files
 .idea/
@@ -39,7 +34,9 @@ storage/*
 Thumbs.db
 
 # Test artifacts
-.pytest_cache/
-.nyc_output/
 playwright-report/
 test-results/
+.nyc_output/
+
+# Local infrastructure data
+.infrastructure-data/

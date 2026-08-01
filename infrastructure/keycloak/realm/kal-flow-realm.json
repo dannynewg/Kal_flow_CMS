@@ -1,0 +1,30 @@
+{
+  "realm": "kal-flow",
+  "enabled": true,
+  "displayName": "Kal_flow",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["en"],
+  "defaultLocale": "en",
+  "bruteForceProtected": true,
+  "clients": [
+    {
+      "clientId": "kal-flow-web",
+      "name": "Kal_flow web BFF",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "kal_flow_local_bff_secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:3000/*"],
+      "webOrigins": ["http://localhost:3000"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ]
+}

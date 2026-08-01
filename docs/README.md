@@ -7,6 +7,7 @@ This directory contains technical and product documentation for Kal_flow.
 - [Architecture](architecture.md)
 - [ADR-0001: Adopt the Initial Application Stack](architecture/adr/0001-application-stack.md)
 - [Configuration](configuration.md)
+- [Development environment](development.md)
 - [Localization](localization.md)
 - [Security Architecture](security.md)
 

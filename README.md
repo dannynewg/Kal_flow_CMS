@@ -286,72 +286,64 @@ The backend remains one deployable application with explicit domain modules so c
 
 ## Getting Started
 
-The application stack is selected and documented, but executable scaffolding and the installation workflow have not yet been added. Once implementation begins, this section will contain verified setup and migration commands.
+The repository foundation is ready for application scaffolding. It provides a pinned pnpm workspace, GitHub Codespaces/Dev Container configuration, local Docker infrastructure, environment templates, and CI validation.
 
-### Clone the Repository
+### Codespaces
+
+1. Open the repository in GitHub Codespaces.
+2. Copy `.env.example` to `.env` if the Codespace has not done so already.
+3. Wait for the post-create command to install the workspace and run validation.
+
+### Local development
+
+Requirements: Node.js 22+, Corepack, and Docker Compose.
 
 ```bash
 git clone https://github.com/dannynewg/Kal_flow_CMS.git
 cd Kal_flow_CMS
+cp .env.example .env
+corepack enable
+pnpm install --frozen-lockfile
+pnpm infra:up
+pnpm check
 ```
 
-### Recommended Environment Configuration
+Keycloak is available at `http://localhost:8080` and the MinIO console at `http://localhost:9001`. The future web application and API reserve ports 3000 and 4000. See the [development environment guide](docs/development.md) and [configuration reference](docs/configuration.md).
 
-A future `.env.example` file should document required environment variables. Typical values may include:
-
-```env
-APP_NAME=Kal_flow
-APP_ENV=development
-APP_URL=http://localhost:3000
-
-DATABASE_HOST=localhost
-DATABASE_PORT=
-DATABASE_NAME=kal_flow
-DATABASE_USER=
-DATABASE_PASSWORD=
-
-AUTH_SECRET=
-DEFAULT_LANGUAGE=en
-SUPPORTED_LANGUAGES=en,am
-TIMEZONE=Africa/Addis_Ababa
-```
-
-Never commit production passwords, tokens, private keys, or other secrets.
+The example credentials are for isolated local development only. Never reuse them in production or commit real passwords, tokens, private keys, or client secrets.
 
 ## Project Structure
 
-Executable applications have not been scaffolded yet. The accepted pnpm monorepo will use this target structure:
+The accepted pnpm monorepo foundation now uses this structure:
 
 ```text
 Kal_flow_CMS/
+├── .devcontainer/               # Codespaces and VS Code container setup
+├── .github/                     # CI, dependency updates, and PR template
 ├── apps/
-│   ├── web/                      # Next.js UI and BFF
-│   ├── api/                      # NestJS modular-monolith API
-│   └── worker/                   # BullMQ background jobs
+│   ├── web/                     # Next.js UI and BFF
+│   ├── api/                     # NestJS modular-monolith API
+│   └── worker/                  # BullMQ background jobs
 ├── packages/
-│   ├── database/                 # Prisma schema, migrations, and seeds
-│   ├── contracts/                # Shared API schemas and types
-│   ├── localization/             # English and Amharic resources
-│   ├── ui/                       # Shared UI components
-│   └── configuration/            # Validated shared configuration
+│   ├── database/                # Prisma schema, migrations, and seeds
+│   ├── contracts/               # Shared API schemas and types
+│   ├── localization/            # English and Amharic resources
+│   ├── ui/                      # Shared UI components
+│   └── configuration/           # Validated shared configuration
 ├── infrastructure/
-│   ├── docker/                   # Local and deployment containers
-│   └── keycloak/                 # Realm configuration and themes
-├── docs/
-│   ├── architecture/
-│   │   └── adr/                  # Architecture decision records
-│   ├── architecture.md
-│   ├── configuration.md
-│   ├── localization.md
-│   └── security.md
-├── tests/                        # Cross-application and end-to-end tests
+│   ├── docker/                  # PostgreSQL, Redis, MinIO, and Keycloak
+│   └── keycloak/                # Development realm configuration
+├── scripts/                     # Repository validation
+├── docs/                        # Architecture and development documentation
+├── tests/                       # Cross-application and end-to-end tests
 ├── pnpm-workspace.yaml
+├── tsconfig.base.json
 ├── package.json
 ├── .env.example
 └── README.md
 ```
 
-Domain modules—including organizations, users, contracts, templates, clauses, workflows, approvals, obligations, documents, notifications, reports, audit, and localization—will live within the NestJS API rather than as independently deployed microservices.
+The application directories are boundary placeholders; Next.js, NestJS, Prisma, and worker implementation code will be generated in the next phase. Domain modules—including organizations, users, contracts, templates, clauses, workflows, approvals, obligations, documents, notifications, reports, audit, and localization—will live within the NestJS API rather than as independently deployed microservices.
 
 ## Localization Guidelines
 
@@ -481,7 +473,7 @@ Contributors should preserve the following principles:
 ## Roadmap
 
 - [x] Select and document the application technology stack
-- [ ] Add initial application structure
+- [x] Add initial application structure
 - [ ] Add authentication and role-based access control
 - [ ] Add organization and department management
 - [ ] Add contract request intake

@@ -1,15 +1,3 @@
-# Tests
+# Cross-application tests
 
-Automated tests will be organized here after the implementation stack is selected.
-
-Priority test areas:
-
-- Authentication and authorization
-- Contract creation and editing
-- Approval routing
-- Template generation
-- File upload validation
-- Version history
-- Obligation and renewal reminders
-- Audit logging
-- English and Amharic rendering
+End-to-end and integration tests spanning the web, API, worker, identity provider, and infrastructure belong here. Application-local tests should remain beside their source.
