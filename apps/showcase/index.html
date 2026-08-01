@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#12392f" />
+    <meta name="description" content="Kal_flow contract management system development showcase" />
+    <title>Kal_flow — Development Showcase</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="demo-banner">
+      <span data-copy="demo">Development showcase · Sample data · No real authentication</span>
+      <a href="https://github.com/dannynewg/Kal_flow_CMS">View source ↗</a>
+    </div>
+
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true"><span>K</span></div>
+          <div><strong>Kal_flow</strong><small>Contract intelligence</small></div>
+        </div>
+
+        <nav aria-label="Primary navigation">
+          <button class="nav-item active" data-view="dashboard"><span class="nav-icon">⌂</span><span data-copy="dashboard">Dashboard</span></button>
+          <button class="nav-item" data-view="contracts"><span class="nav-icon">▤</span><span data-copy="contracts">Contracts</span><span class="nav-count">24</span></button>
+          <button class="nav-item" data-view="approvals"><span class="nav-icon">✓</span><span data-copy="approvals">Approvals</span><span class="nav-count amber">6</span></button>
+          <button class="nav-item" data-view="obligations"><span class="nav-icon">◷</span><span data-copy="obligations">Obligations</span></button>
+          <button class="nav-item" data-view="organization"><span class="nav-icon">◇</span><span data-copy="organization">Organization</span></button>
+          <button class="nav-item" data-view="reports"><span class="nav-icon">↗</span><span data-copy="reports">Reports</span></button>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="workspace"><span class="workspace-logo">KM</span><div><strong>Kality Manufacturing</strong><small data-copy="workspace">Development workspace</small></div></div>
+          <div class="progress"><span style="width:72%"></span></div>
+          <small data-copy="setup">Workspace setup · 72%</small>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <button class="mobile-menu" id="menuButton" aria-label="Open menu">☰</button>
+          <div class="search"><span>⌕</span><input data-copy-placeholder="search" placeholder="Search contracts, parties, or IDs…" /><kbd>⌘ K</kbd></div>
+          <div class="top-actions">
+            <button class="language" id="languageButton">አማ</button>
+            <button class="notification" aria-label="Notifications">♢<i></i></button>
+            <div class="avatar">DN</div>
+          </div>
+        </header>
+
+        <section class="view active" id="dashboard">
+          <div class="page-heading">
+            <div><p class="kicker" data-copy="overview">Overview</p><h1 data-copy="welcome">Good morning, Danny</h1><p data-copy="welcomeSub">Here’s what needs your attention across the contract portfolio.</p></div>
+            <button class="primary" data-action="new-contract"><span>＋</span><span data-copy="newContract">New contract</span></button>
+          </div>
+
+          <div class="metric-grid">
+            <article class="metric"><div class="metric-head"><span data-copy="activeContracts">Active contracts</span><i class="metric-icon green">▤</i></div><strong>24</strong><p><b>↑ 12%</b> <span data-copy="fromMonth">from last month</span></p></article>
+            <article class="metric"><div class="metric-head"><span data-copy="portfolioValue">Portfolio value</span><i class="metric-icon blue">Br</i></div><strong>ETB 48.2M</strong><p><span data-copy="across">Across 8 departments</span></p></article>
+            <article class="metric"><div class="metric-head"><span data-copy="pendingApprovals">Pending approvals</span><i class="metric-icon amber">✓</i></div><strong>6</strong><p class="warn"><span data-copy="twoUrgent">2 require attention today</span></p></article>
+            <article class="metric"><div class="metric-head"><span data-copy="expiringSoon">Expiring soon</span><i class="metric-icon red">◷</i></div><strong>4</strong><p><span data-copy="nextDays">Within the next 30 days</span></p></article>
+          </div>
+
+          <div class="dashboard-grid">
+            <article class="panel portfolio-panel">
+              <div class="panel-title"><div><h2 data-copy="portfolio">Contract portfolio</h2><p data-copy="portfolioSub">Active value by department</p></div><button class="ghost" data-copy="thisYear">This year⌄</button></div>
+              <div class="chart-wrap">
+                <div class="donut" aria-label="Contract value distribution"><div><strong>ETB 48.2M</strong><span data-copy="totalValue">Total value</span></div></div>
+                <div class="legend">
+                  <div><i style="--dot:#1d7256"></i><span data-copy="procurement">Procurement</span><strong>38%</strong></div>
+                  <div><i style="--dot:#d69d4a"></i><span data-copy="operations">Operations</span><strong>27%</strong></div>
+                  <div><i style="--dot:#547a98"></i><span data-copy="hr">Human resources</span><strong>19%</strong></div>
+                  <div><i style="--dot:#b9c8c1"></i><span data-copy="other">Other</span><strong>16%</strong></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="panel attention-panel">
+              <div class="panel-title"><div><h2 data-copy="attention">Needs attention</h2><p data-copy="attentionSub">Deadlines and pending actions</p></div><button class="text-button" data-view-target="approvals" data-copy="viewAll">View all</button></div>
+              <div class="attention-list">
+                <button data-view-target="approvals"><i class="attention-icon red">!</i><span><strong>Ethio Telecom service agreement</strong><small data-copy="expires3">Expires in 3 days</small></span><b>›</b></button>
+                <button data-view-target="approvals"><i class="attention-icon amber">✓</i><span><strong>Freight forwarding framework</strong><small data-copy="awaitLegal">Awaiting legal approval</small></span><b>›</b></button>
+                <button data-view-target="obligations"><i class="attention-icon blue">◷</i><span><strong>Industrial equipment supply</strong><small data-copy="milestoneDue">Payment milestone due Aug 06</small></span><b>›</b></button>
+              </div>
+            </article>
+          </div>
+
+          <article class="panel recent-panel">
+            <div class="panel-title"><div><h2 data-copy="recent">Recent contracts</h2><p data-copy="recentSub">Latest activity across your organization</p></div><button class="text-button" data-view-target="contracts" data-copy="viewContracts">View all contracts</button></div>
+            <div class="table-wrap"><table><thead><tr><th data-copy="contract">Contract</th><th data-copy="counterparty">Counterparty</th><th data-copy="department">Department</th><th data-copy="value">Value</th><th data-copy="expiry">Expiry</th><th data-copy="status">Status</th></tr></thead><tbody id="recentRows"></tbody></table></div>
+          </article>
+        </section>
+
+        <section class="view" id="contracts">
+          <div class="page-heading"><div><p class="kicker" data-copy="repository">Repository</p><h1 data-copy="allContracts">All contracts</h1><p data-copy="contractsSub">Search, filter, and manage your organization’s agreements.</p></div><button class="primary" data-action="new-contract">＋ <span data-copy="newContract">New contract</span></button></div>
+          <div class="panel"><div class="filterbar"><div class="search compact"><span>⌕</span><input id="contractSearch" data-copy-placeholder="filter" placeholder="Filter contracts…" /></div><button class="ghost">☷ <span data-copy="filterButton">Filters</span></button><button class="ghost">⇩ <span data-copy="export">Export</span></button></div><div class="table-wrap"><table><thead><tr><th data-copy="contract">Contract</th><th data-copy="counterparty">Counterparty</th><th data-copy="department">Department</th><th data-copy="owner">Owner</th><th data-copy="value">Value</th><th data-copy="status">Status</th></tr></thead><tbody id="contractRows"></tbody></table></div></div>
+        </section>
+
+        <section class="view" id="approvals">
+          <div class="page-heading"><div><p class="kicker" data-copy="workflow">Workflow</p><h1 data-copy="approvalQueue">Approval queue</h1><p data-copy="approvalSub">Review decisions waiting for your role.</p></div></div>
+          <div class="approval-grid" id="approvalCards"></div>
+        </section>
+
+        <section class="view" id="obligations">
+          <div class="page-heading"><div><p class="kicker" data-copy="tracking">Tracking</p><h1 data-copy="obligationTitle">Obligations & milestones</h1><p data-copy="obligationSub">Stay ahead of deliverables, payments, and commitments.</p></div></div>
+          <div class="kanban"><article><h3><i class="dot amber-dot"></i><span data-copy="dueSoon">Due soon</span><b>3</b></h3><div class="task"><small>KF-2026-019</small><strong>Advance payment verification</strong><span>ETB 1.8M · Aug 06</span></div><div class="task"><small>KF-2026-011</small><strong>Quarterly service review</strong><span>Aug 12</span></div></article><article><h3><i class="dot blue-dot"></i><span data-copy="inProgress">In progress</span><b>2</b></h3><div class="task"><small>KF-2026-014</small><strong>Equipment inspection</strong><span>Owner · Alem T.</span></div></article><article><h3><i class="dot green-dot"></i><span data-copy="completed">Completed</span><b>8</b></h3><div class="task done"><small>KF-2026-008</small><strong>Insurance certificate</strong><span>Completed Jul 28</span></div></article></div>
+        </section>
+
+        <section class="view" id="organization">
+          <div class="page-heading"><div><p class="kicker" data-copy="administration">Administration</p><h1 data-copy="orgTitle">Organization & access</h1><p data-copy="orgSub">Memberships and roles are enforced inside every workspace.</p></div><button class="primary" data-action="invite">＋ <span data-copy="invite">Invite member</span></button></div>
+          <div class="org-summary panel"><div class="org-logo">KM</div><div><h2>Kality Manufacturing PLC</h2><p>Addis Ababa · Africa/Addis_Ababa</p></div><span class="badge active" data-copy="active">Active</span></div>
+          <div class="panel"><div class="panel-title"><div><h2 data-copy="members">Members</h2><p data-copy="membersSub">8 active members across 5 roles</p></div></div><div class="member-grid" id="memberCards"></div></div>
+        </section>
+
+        <section class="view" id="reports">
+          <div class="page-heading"><div><p class="kicker" data-copy="insights">Insights</p><h1 data-copy="reportTitle">Portfolio reports</h1><p data-copy="reportSub">A concise view of value, risk, and contract activity.</p></div><button class="ghost">⇩ <span data-copy="downloadReport">Download report</span></button></div>
+          <div class="report-grid"><article class="panel"><h2 data-copy="activity">Contract activity</h2><div class="bars"><div style="--h:42%"><span>Mar</span></div><div style="--h:57%"><span>Apr</span></div><div style="--h:38%"><span>May</span></div><div style="--h:76%"><span>Jun</span></div><div style="--h:64%"><span>Jul</span></div><div class="current" style="--h:88%"><span>Aug</span></div></div></article><article class="panel"><h2 data-copy="riskProfile">Risk profile</h2><div class="risk-list"><div><span><i class="dot green-dot"></i><span data-copy="low">Low risk</span></span><strong>16</strong></div><div><span><i class="dot amber-dot"></i><span data-copy="medium">Medium risk</span></span><strong>6</strong></div><div><span><i class="dot red-dot"></i><span data-copy="high">High risk</span></span><strong>2</strong></div></div></article></div>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status"></div>
+    <script src="app.js"></script>
+  </body>
+</html>

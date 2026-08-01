@@ -6,6 +6,8 @@ The project is built around the legal, linguistic, and operational requirements 
 
 > **Project status:** Early development.
 
+> **Live preview:** Explore the public [Kal_flow development showcase](https://dannynewg.github.io/Kal_flow_CMS/). It uses sample data and demonstrates the planned dashboard, contract register, approvals, obligations, reports, bilingual interface, and organization access views. Authentication and data changes are intentionally disabled because GitHub Pages is static hosting.
+
 ## Overview
 
 Many organizations manage contracts across paper files, email threads, spreadsheets, and disconnected storage systems. This makes it difficult to find the latest document, track approvals, monitor obligations, or respond before renewal and expiration deadlines.
@@ -288,6 +290,10 @@ The backend remains one deployable application with explicit domain modules so c
 
 The executable application foundation is ready. It provides a localized Next.js web app, a versioned NestJS API with OpenAPI, a BullMQ worker, a Prisma database package, GitHub Codespaces/Dev Container configuration, local Docker infrastructure, and CI validation.
 
+### Public development showcase
+
+The repository publishes `apps/showcase` to GitHub Pages on every relevant change to `main`. This zero-cost preview is a static product demonstration with fictional sample data; it does not connect to Keycloak, NestJS, PostgreSQL, Redis, or MinIO. The complete authenticated system remains available through local development and will move to persistent staging after the first usable dashboard and contract module are ready.
+
 ### Private Codespaces preview
 
 1. In the private repository, select **Code → Codespaces → Create codespace on main**.
@@ -536,4 +542,3 @@ Kal_flow is being developed to improve contract administration for Ethiopian org
 <p align="center">
   <strong>Kal_flow — Contract management designed for Ethiopia.</strong>
 </p>
-

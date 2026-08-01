@@ -2,6 +2,12 @@
 
 Kal_flow supports GitHub Codespaces, VS Code Dev Containers, and a local Docker Compose workflow.
 
+## Public GitHub Pages showcase
+
+The static showcase at <https://dannynewg.github.io/Kal_flow_CMS/> provides a public, no-login preview of the product direction. GitHub Actions deploys `apps/showcase` whenever it changes on `main`.
+
+The showcase contains fictional sample data and no secrets. It is deliberately separate from the executable application because GitHub Pages cannot run Next.js server sessions, NestJS, Keycloak, PostgreSQL, Redis, or MinIO. Never add real contracts, personal data, credentials, or production configuration to the showcase.
+
 ## Private Codespaces preview
 
 1. In the private repository, select **Code → Codespaces → Create codespace on main**.
