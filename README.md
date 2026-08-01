@@ -288,11 +288,14 @@ The backend remains one deployable application with explicit domain modules so c
 
 The executable application foundation is ready. It provides a localized Next.js web app, a versioned NestJS API with OpenAPI, a BullMQ worker, a Prisma database package, GitHub Codespaces/Dev Container configuration, local Docker infrastructure, and CI validation.
 
-### Codespaces
+### Private Codespaces preview
 
-1. Open the repository in GitHub Codespaces.
-2. Copy `.env.example` to `.env` if the Codespace has not done so already.
-3. Wait for the post-create command to install the workspace and run validation.
+1. In the private repository, select **Code → Codespaces → Create codespace on main**.
+2. Wait while the container installs dependencies, validates the repository, applies database migrations, configures Keycloak, and starts the application.
+3. Open the automatically forwarded **Kal_flow private preview** port.
+4. Sign in with the disposable development account documented below.
+
+All forwarded services remain private. See the [private Codespaces preview guide](docs/codespaces-preview.md) for lifecycle, security, and troubleshooting details.
 
 ### Local development
 
@@ -337,7 +340,7 @@ Kal_flow_CMS/
 ├── infrastructure/
 │   ├── docker/                  # PostgreSQL, Redis, MinIO, and Keycloak
 │   └── keycloak/                # Development realm configuration
-├── scripts/                     # Repository validation
+├── scripts/                     # Preview lifecycle and repository validation
 ├── docs/                        # Architecture and development documentation
 ├── tests/                       # Cross-application and end-to-end tests
 ├── pnpm-workspace.yaml
@@ -480,6 +483,7 @@ Contributors should preserve the following principles:
 - [x] Add initial application structure
 - [x] Scaffold executable web, API, worker, and database foundations
 - [x] Add Keycloak authentication, organization membership, and role-based access control foundation
+- [x] Add a private Codespaces development preview
 - [ ] Add organization and department management
 - [ ] Add contract request intake
 - [ ] Add centralized contract repository
