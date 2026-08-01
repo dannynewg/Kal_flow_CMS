@@ -11,13 +11,35 @@
     "keycloak"
   ],
   "shutdownAction": "stopCompose",
-  "postCreateCommand": "corepack enable && pnpm install --frozen-lockfile && pnpm check",
-  "forwardPorts": [3000, 4000, 5432, 6379, 8080, 9000, 9001],
+  "postCreateCommand": "corepack enable && node scripts/configure-codespaces.mjs && pnpm install --frozen-lockfile && pnpm check",
+  "postStartCommand": "bash scripts/start-codespaces-preview.sh",
+  "postAttachCommand": "node scripts/configure-codespaces.mjs --print",
+  "forwardPorts": [3000, 4000, 8080, 9001],
   "portsAttributes": {
-    "3000": { "label": "Kal_flow web", "onAutoForward": "notify" },
-    "4000": { "label": "Kal_flow API", "onAutoForward": "notify" },
-    "8080": { "label": "Keycloak", "onAutoForward": "notify" },
-    "9001": { "label": "MinIO console", "onAutoForward": "notify" }
+    "3000": {
+      "label": "Kal_flow private preview",
+      "onAutoForward": "openBrowserOnce",
+      "visibility": "private"
+    },
+    "4000": {
+      "label": "Kal_flow API",
+      "onAutoForward": "silent",
+      "visibility": "private"
+    },
+    "8080": {
+      "label": "Keycloak",
+      "onAutoForward": "silent",
+      "visibility": "private"
+    },
+    "9001": {
+      "label": "MinIO console",
+      "onAutoForward": "silent",
+      "visibility": "private"
+    }
+  },
+  "otherPortsAttributes": {
+    "onAutoForward": "ignore",
+    "visibility": "private"
   },
   "customizations": {
     "vscode": {
