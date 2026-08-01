@@ -1,0 +1,10 @@
+{
+  "name": "@kal-flow/configuration",
+  "version": "0.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": { "build": "tsc -p tsconfig.json", "check": "tsc --noEmit -p tsconfig.json" },
+  "dependencies": { "zod": "^4.4.3" },
+  "devDependencies": { "@types/node": "^26.1.2", "typescript": "catalog:" }
+}

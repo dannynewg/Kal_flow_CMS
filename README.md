@@ -286,7 +286,7 @@ The backend remains one deployable application with explicit domain modules so c
 
 ## Getting Started
 
-The repository foundation is ready for application scaffolding. It provides a pinned pnpm workspace, GitHub Codespaces/Dev Container configuration, local Docker infrastructure, environment templates, and CI validation.
+The executable application foundation is ready. It provides a localized Next.js web app, a versioned NestJS API with OpenAPI, a BullMQ worker, a Prisma database package, GitHub Codespaces/Dev Container configuration, local Docker infrastructure, and CI validation.
 
 ### Codespaces
 
@@ -305,10 +305,14 @@ cp .env.example .env
 corepack enable
 pnpm install --frozen-lockfile
 pnpm infra:up
+pnpm db:generate
+pnpm dev
+
+# In another terminal
 pnpm check
 ```
 
-Keycloak is available at `http://localhost:8080` and the MinIO console at `http://localhost:9001`. The future web application and API reserve ports 3000 and 4000. See the [development environment guide](docs/development.md) and [configuration reference](docs/configuration.md).
+The web application is available at `http://localhost:3000`, the API health endpoint at `http://localhost:4000/v1/health`, and OpenAPI documentation at `http://localhost:4000/docs`. Keycloak is available at `http://localhost:8080` and the MinIO console at `http://localhost:9001`. See the [development environment guide](docs/development.md) and [configuration reference](docs/configuration.md).
 
 The example credentials are for isolated local development only. Never reuse them in production or commit real passwords, tokens, private keys, or client secrets.
 
@@ -343,7 +347,7 @@ Kal_flow_CMS/
 └── README.md
 ```
 
-The application directories are boundary placeholders; Next.js, NestJS, Prisma, and worker implementation code will be generated in the next phase. Domain modules—including organizations, users, contracts, templates, clauses, workflows, approvals, obligations, documents, notifications, reports, audit, and localization—will live within the NestJS API rather than as independently deployed microservices.
+The application directories contain executable foundations for Next.js, NestJS, Prisma, and BullMQ; business-domain modules will be added incrementally. Domain modules—including organizations, users, contracts, templates, clauses, workflows, approvals, obligations, documents, notifications, reports, audit, and localization—will live within the NestJS API rather than as independently deployed microservices.
 
 ## Localization Guidelines
 
@@ -474,6 +478,7 @@ Contributors should preserve the following principles:
 
 - [x] Select and document the application technology stack
 - [x] Add initial application structure
+- [x] Scaffold executable web, API, worker, and database foundations
 - [ ] Add authentication and role-based access control
 - [ ] Add organization and department management
 - [ ] Add contract request intake
@@ -527,3 +532,4 @@ Kal_flow is being developed to improve contract administration for Ethiopian org
 <p align="center">
   <strong>Kal_flow — Contract management designed for Ethiopia.</strong>
 </p>
+

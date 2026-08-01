@@ -1,4 +1,4 @@
-name: Foundation checks
+name: Application checks
 
 on:
   push:
@@ -28,4 +28,6 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+      - run: pnpm test
+      - run: pnpm build
       - run: docker compose -f infrastructure/docker/compose.yaml config
