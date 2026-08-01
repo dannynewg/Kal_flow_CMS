@@ -10,6 +10,15 @@ set -a
 source .env
 set +a
 
+if [[ ! -x packages/database/node_modules/.bin/prisma ]]; then
+  echo "Workspace dependencies are incomplete; repairing the pnpm installation..."
+  if [[ "${CODESPACES:-false}" == "true" ]]; then
+    sudo mkdir -p /home/node/.local/share/pnpm
+    sudo chown -R "$(id -u):$(id -g)" /home/node/.local/share/pnpm
+  fi
+  pnpm install --frozen-lockfile
+fi
+
 pnpm db:generate
 pnpm --filter @kal-flow/database migrate:deploy
 node scripts/configure-codespaces.mjs --keycloak
