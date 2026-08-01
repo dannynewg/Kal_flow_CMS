@@ -264,9 +264,29 @@ Kal_flow aims to help organizations:
 - Reduce dependence on paper-based processes
 - Improve management reporting and visibility
 
+## Architecture
+
+The initial architecture is accepted in [ADR-0001](docs/architecture/adr/0001-application-stack.md). Kal_flow will begin as a **TypeScript modular monolith** in a **pnpm monorepo**.
+
+| Layer | Selected stack |
+| --- | --- |
+| Frontend | Next.js App Router, TypeScript, Tailwind CSS, shadcn/ui |
+| Localization | next-intl with English and Amharic |
+| Backend | NestJS with REST and OpenAPI |
+| Database | PostgreSQL with Prisma ORM |
+| Authentication | Keycloak using OpenID Connect |
+| Authorization | Kal_flow domain permissions enforced by NestJS |
+| Background jobs | BullMQ with Redis |
+| Contract files | S3-compatible object storage, initially MinIO |
+| Deployment | Containerized and self-hostable |
+
+The Next.js application acts as a backend-for-frontend for browser sessions. Keycloak manages identity, login, MFA, and federation; Kal_flow manages organization memberships, department roles, contract-level permissions, and approval authority. The NestJS API performs the final authorization check.
+
+The backend remains one deployable application with explicit domain modules so contract changes, approvals, versions, obligations, and audit events can share reliable transactions. See the [architecture overview](docs/architecture.md) for boundaries and data principles.
+
 ## Getting Started
 
-The application code and installation workflow have not yet been added to this repository. Once the implementation is available, this section should document the exact technology stack and verified setup commands.
+The application stack is selected and documented, but executable scaffolding and the installation workflow have not yet been added. Once implementation begins, this section will contain verified setup and migration commands.
 
 ### Clone the Repository
 
@@ -298,35 +318,40 @@ TIMEZONE=Africa/Addis_Ababa
 
 Never commit production passwords, tokens, private keys, or other secrets.
 
-## Suggested Project Structure
+## Project Structure
 
-The exact structure will depend on the selected technology stack. A modular implementation may use a structure similar to:
+Executable applications have not been scaffolded yet. The accepted pnpm monorepo will use this target structure:
 
 ```text
 Kal_flow_CMS/
-├── src/
-│   ├── contracts/
-│   ├── templates/
-│   ├── clauses/
-│   ├── approvals/
-│   ├── obligations/
-│   ├── notifications/
-│   ├── reports/
-│   ├── users/
-│   ├── organizations/
-│   ├── audit/
-│   └── localization/
-├── database/
-│   ├── migrations/
-│   └── seeds/
-├── public/
-├── storage/
-├── tests/
+├── apps/
+│   ├── web/                      # Next.js UI and BFF
+│   ├── api/                      # NestJS modular-monolith API
+│   └── worker/                   # BullMQ background jobs
+├── packages/
+│   ├── database/                 # Prisma schema, migrations, and seeds
+│   ├── contracts/                # Shared API schemas and types
+│   ├── localization/             # English and Amharic resources
+│   ├── ui/                       # Shared UI components
+│   └── configuration/            # Validated shared configuration
+├── infrastructure/
+│   ├── docker/                   # Local and deployment containers
+│   └── keycloak/                 # Realm configuration and themes
 ├── docs/
+│   ├── architecture/
+│   │   └── adr/                  # Architecture decision records
+│   ├── architecture.md
+│   ├── configuration.md
+│   ├── localization.md
+│   └── security.md
+├── tests/                        # Cross-application and end-to-end tests
+├── pnpm-workspace.yaml
+├── package.json
 ├── .env.example
-├── README.md
-└── LICENSE
+└── README.md
 ```
+
+Domain modules—including organizations, users, contracts, templates, clauses, workflows, approvals, obligations, documents, notifications, reports, audit, and localization—will live within the NestJS API rather than as independently deployed microservices.
 
 ## Localization Guidelines
 
@@ -455,7 +480,7 @@ Contributors should preserve the following principles:
 
 ## Roadmap
 
-- [ ] Select and document the application technology stack
+- [x] Select and document the application technology stack
 - [ ] Add initial application structure
 - [ ] Add authentication and role-based access control
 - [ ] Add organization and department management
