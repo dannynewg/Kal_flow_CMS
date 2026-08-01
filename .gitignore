@@ -24,6 +24,7 @@ logs/
 tmp/
 temp/
 .cache/
+.codespaces/
 
 # IDE and OS files
 .idea/
