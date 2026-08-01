@@ -1,0 +1,45 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+vendor/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Build output
+dist/
+build/
+.next/
+.nuxt/
+coverage/
+
+# Runtime and temporary files
+*.log
+logs/
+tmp/
+temp/
+.cache/
+
+# Uploaded/private documents
+storage/*
+!storage/.gitkeep
+!storage/README.md
+
+# IDE and OS files
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+.pytest_cache/
+.nyc_output/
+playwright-report/
+test-results/
