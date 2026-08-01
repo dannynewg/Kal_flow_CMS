@@ -11,7 +11,7 @@
     "keycloak"
   ],
   "shutdownAction": "stopCompose",
-  "postCreateCommand": "corepack enable && node scripts/configure-codespaces.mjs && pnpm install --frozen-lockfile && pnpm check",
+  "postCreateCommand": "sudo mkdir -p /home/node/.local/share/pnpm && sudo chown -R \"$(id -u):$(id -g)\" /home/node/.local/share/pnpm && corepack enable && pnpm install --frozen-lockfile && pnpm check",
   "postStartCommand": "bash scripts/start-codespaces-preview.sh",
   "postAttachCommand": "node scripts/configure-codespaces.mjs --print",
   "forwardPorts": [3000, 4000, 8080, 9001],
