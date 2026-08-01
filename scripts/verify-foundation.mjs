@@ -11,6 +11,7 @@ const requiredPaths = [
   'apps/web/app/[locale]/page.tsx',
   'apps/web/auth.ts',
   'apps/worker/src/main.ts',
+  'docs/codespaces-preview.md',
   'infrastructure/docker/compose.yaml',
   'infrastructure/keycloak/realm/kal-flow-realm.json',
   'packages/configuration/README.md',
@@ -22,7 +23,10 @@ const requiredPaths = [
   'packages/localization/locales/en/common.json',
   'packages/ui/src/index.tsx',
   'pnpm-workspace.yaml',
-  'tsconfig.base.json'
+  'scripts/configure-codespaces.mjs',
+  'scripts/start-codespaces-preview.sh',
+  'scripts/stop-codespaces-preview.sh',
+  'tsconfig.base.json',
 ];
 
 const missing = requiredPaths.filter((path) => !existsSync(path));
@@ -37,7 +41,7 @@ for (const path of [
   'packages/localization/locales/am/common.json',
   'packages/localization/locales/en/common.json',
   'package.json',
-  'tsconfig.base.json'
+  'tsconfig.base.json',
 ]) {
   JSON.parse(readFileSync(path, 'utf8'));
 }
@@ -50,6 +54,14 @@ const duplicates = envKeys.filter((key, index) => envKeys.indexOf(key) !== index
 if (duplicates.length > 0) {
   console.error(`Duplicate environment keys: ${[...new Set(duplicates)].join(', ')}`);
   process.exit(1);
+}
+
+const devcontainer = JSON.parse(readFileSync('.devcontainer/devcontainer.json', 'utf8'));
+for (const port of ['3000', '4000', '8080', '9001']) {
+  if (devcontainer.portsAttributes?.[port]?.visibility !== 'private') {
+    console.error(`Codespaces port ${port} must remain private.`);
+    process.exit(1);
+  }
 }
 
 console.log('Kal_flow repository foundation is valid.');
