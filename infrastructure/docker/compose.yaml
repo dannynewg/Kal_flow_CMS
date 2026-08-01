@@ -8,7 +8,6 @@ services:
     command: sleep infinity
     volumes:
       - ../..:/workspaces/Kal_flow_CMS:cached
-      - pnpm-store:/home/node/.local/share/pnpm/store
     depends_on:
       postgres:
         condition: service_healthy
@@ -118,4 +117,3 @@ volumes:
   keycloak-postgres-data:
   redis-data:
   minio-data:
-  pnpm-store:
