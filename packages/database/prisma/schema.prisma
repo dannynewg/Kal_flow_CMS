@@ -19,6 +19,13 @@ enum MembershipStatus {
   SUSPENDED
 }
 
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
 enum OrganizationRole {
   OWNER
   ADMIN
@@ -33,14 +40,17 @@ enum OrganizationRole {
 }
 
 model User {
-  id               String       @id @default(uuid()) @db.Uuid
-  identityProvider String       @map("identity_provider")
-  subject          String
-  email            String?
-  displayName      String?      @map("display_name")
-  memberships      Membership[]
-  createdAt        DateTime     @default(now()) @map("created_at")
-  updatedAt        DateTime     @updatedAt @map("updated_at")
+  id                  String       @id @default(uuid()) @db.Uuid
+  identityProvider    String       @map("identity_provider")
+  subject             String
+  email               String?
+  displayName         String?      @map("display_name")
+  memberships         Membership[]
+  sentInvitations     Invitation[] @relation("InvitationInviter")
+  acceptedInvitations Invitation[] @relation("InvitationAccepter")
+  auditEvents         AuditEvent[]
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
 
   @@unique([identityProvider, subject])
   @@index([email])
@@ -51,8 +61,14 @@ model Organization {
   id          String             @id @default(uuid()) @db.Uuid
   slug        String             @unique
   name        String
+  description String?
+  timezone    String             @default("Africa/Addis_Ababa")
+  settings    Json               @default("{}")
   status      OrganizationStatus @default(ACTIVE)
   memberships Membership[]
+  departments Department[]
+  invitations Invitation[]
+  auditEvents AuditEvent[]
   createdAt   DateTime           @default(now()) @map("created_at")
   updatedAt   DateTime           @updatedAt @map("updated_at")
 
@@ -60,17 +76,91 @@ model Organization {
 }
 
 model Membership {
-  id             String           @id @default(uuid()) @db.Uuid
-  organizationId String           @map("organization_id") @db.Uuid
-  userId         String           @map("user_id") @db.Uuid
+  id             String                 @id @default(uuid()) @db.Uuid
+  organizationId String                 @map("organization_id") @db.Uuid
+  userId         String                 @map("user_id") @db.Uuid
   role           OrganizationRole
-  status         MembershipStatus @default(ACTIVE)
-  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt      DateTime         @default(now()) @map("created_at")
-  updatedAt      DateTime         @updatedAt @map("updated_at")
+  status         MembershipStatus       @default(ACTIVE)
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  departments    DepartmentMembership[]
+  createdAt      DateTime               @default(now()) @map("created_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
 
   @@unique([organizationId, userId])
   @@index([userId, status])
   @@map("memberships")
+}
+
+model Department {
+  id             String                 @id @default(uuid()) @db.Uuid
+  organizationId String                 @map("organization_id") @db.Uuid
+  parentId       String?                @map("parent_id") @db.Uuid
+  code           String
+  name           String
+  description    String?
+  isActive       Boolean                @default(true) @map("is_active")
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parent         Department?            @relation("DepartmentHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children       Department[]           @relation("DepartmentHierarchy")
+  memberships    DepartmentMembership[]
+  createdAt      DateTime               @default(now()) @map("created_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
+
+  @@unique([organizationId, code])
+  @@index([organizationId, parentId])
+  @@map("departments")
+}
+
+model DepartmentMembership {
+  departmentId String     @map("department_id") @db.Uuid
+  membershipId String     @map("membership_id") @db.Uuid
+  isManager    Boolean    @default(false) @map("is_manager")
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@id([departmentId, membershipId])
+  @@index([membershipId])
+  @@map("department_memberships")
+}
+
+model Invitation {
+  id               String           @id @default(uuid()) @db.Uuid
+  organizationId   String           @map("organization_id") @db.Uuid
+  email            String
+  role             OrganizationRole
+  tokenHash        String           @unique @map("token_hash")
+  status           InvitationStatus @default(PENDING)
+  invitedByUserId  String           @map("invited_by_user_id") @db.Uuid
+  acceptedByUserId String?          @map("accepted_by_user_id") @db.Uuid
+  expiresAt        DateTime         @map("expires_at")
+  acceptedAt       DateTime?        @map("accepted_at")
+  revokedAt        DateTime?        @map("revoked_at")
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy        User             @relation("InvitationInviter", fields: [invitedByUserId], references: [id], onDelete: Restrict)
+  acceptedBy       User?            @relation("InvitationAccepter", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  @@index([organizationId, status, email])
+  @@index([expiresAt])
+  @@map("invitations")
+}
+
+model AuditEvent {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  actorUserId    String?      @map("actor_user_id") @db.Uuid
+  action         String
+  entityType     String       @map("entity_type")
+  entityId       String?      @map("entity_id")
+  metadata       Json         @default("{}")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor          User?        @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@index([organizationId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_events")
 }

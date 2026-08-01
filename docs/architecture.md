@@ -59,7 +59,11 @@ Authentication and authorization are deliberately separate:
 
 Keycloak identities are synchronized into the application user table on the first authenticated API request. Access to an organization requires an active membership in an active organization. Roles map to named permissions in NestJS; frontend visibility never grants authority.
 
-The initial roles are owner, administrator, contract manager, legal officer, department manager, finance officer, procurement officer, contract owner, auditor, and viewer. Organization creation atomically grants the creator the owner membership. General membership operations cannot transfer ownership.
+The initial roles are owner, administrator, contract manager, legal officer, department manager, finance officer, procurement officer, contract owner, auditor, and viewer. Organization creation atomically grants the creator the owner membership. A dedicated transaction-safe workflow transfers ownership by demoting the previous owner to administrator and promoting one active member; general membership operations cannot assign or remove the owner role.
+
+Departments are tenant-owned hierarchical records. Parent validation and membership assignment always include the organization boundary. Invitations contain a single-use random token; only its SHA-256 digest is persisted, it expires after seven days, and acceptance requires the authenticated Keycloak email to match the invitation email.
+
+Organization, membership, department, invitation, and ownership mutations write an audit event inside the same PostgreSQL transaction. Audit events are append-only: the API exposes paginated reads but no update or delete operation.
 
 ## Data principles
 

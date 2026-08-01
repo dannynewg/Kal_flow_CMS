@@ -490,7 +490,7 @@ Contributors should preserve the following principles:
 - [x] Scaffold executable web, API, worker, and database foundations
 - [x] Add Keycloak authentication, organization membership, and role-based access control foundation
 - [x] Add a private Codespaces development preview
-- [ ] Add organization and department management
+- [x] Add organization and department management, invitations, ownership transfer, and audit events
 - [ ] Add contract request intake
 - [ ] Add centralized contract repository
 - [ ] Add Ethiopian contract template library

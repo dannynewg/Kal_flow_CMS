@@ -109,7 +109,18 @@
         <section class="view" id="organization">
           <div class="page-heading"><div><p class="kicker" data-copy="administration">Administration</p><h1 data-copy="orgTitle">Organization & access</h1><p data-copy="orgSub">Memberships and roles are enforced inside every workspace.</p></div><button class="primary" data-action="invite">＋ <span data-copy="invite">Invite member</span></button></div>
           <div class="org-summary panel"><div class="org-logo">KM</div><div><h2>Kality Manufacturing PLC</h2><p>Addis Ababa · Africa/Addis_Ababa</p></div><span class="badge active" data-copy="active">Active</span></div>
-          <div class="panel"><div class="panel-title"><div><h2 data-copy="members">Members</h2><p data-copy="membersSub">8 active members across 5 roles</p></div></div><div class="member-grid" id="memberCards"></div></div>
+          <div class="org-metrics">
+            <article class="panel"><small data-copy="departments">Departments</small><strong>5</strong><span data-copy="hierarchyActive">Hierarchy active</span></article>
+            <article class="panel"><small data-copy="pendingInvites">Pending invitations</small><strong>2</strong><span data-copy="expireSeven">Expire in 7 days</span></article>
+            <article class="panel"><small data-copy="auditEvents">Audit events</small><strong>148</strong><span data-copy="appendOnly">Append-only history</span></article>
+            <button class="panel ownership-card" data-action="transfer"><small data-copy="ownership">Ownership</small><strong>Danny New</strong><span data-copy="transferOwner">Transfer safely →</span></button>
+          </div>
+          <div class="organization-grid">
+            <div class="panel"><div class="panel-title"><div><h2 data-copy="departments">Departments</h2><p data-copy="departmentSub">Structure, managers, and member assignments</p></div><button class="text-button" data-action="department" data-copy="addDepartment">Add department</button></div><div class="department-list" id="departmentCards"></div></div>
+            <div class="panel"><div class="panel-title"><div><h2 data-copy="pendingInvites">Pending invitations</h2><p data-copy="invitationSub">Secure, expiring access links</p></div></div><div class="invitation-list" id="invitationCards"></div></div>
+          </div>
+          <div class="panel member-panel"><div class="panel-title"><div><h2 data-copy="members">Members</h2><p data-copy="membersSub">8 active members across 5 roles</p></div></div><div class="member-grid" id="memberCards"></div></div>
+          <div class="panel audit-panel"><div class="panel-title"><div><h2 data-copy="recentAudit">Recent audit activity</h2><p data-copy="auditSub">Immutable organization-management history</p></div><button class="text-button" data-copy="viewAll">View all</button></div><div class="audit-list" id="auditCards"></div></div>
         </section>
 
         <section class="view" id="reports">

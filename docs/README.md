@@ -11,6 +11,7 @@ This directory contains technical and product documentation for Kal_flow.
 - [Development environment](development.md)
 - [Localization](localization.md)
 - [Security Architecture](security.md)
+- [Organization and department management](organization-management.md)
 
 ## Planned documentation
 
