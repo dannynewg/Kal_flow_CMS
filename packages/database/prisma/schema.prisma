@@ -1,11 +1,76 @@
 generator client {
   provider = "prisma-client"
   output   = "../generated/client"
+  moduleFormat = "cjs"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-// Domain models and their first migration are intentionally added with the
-// organization-management phase so tenant invariants are designed together.
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  CONTRACT_MANAGER
+  LEGAL_OFFICER
+  DEPARTMENT_MANAGER
+  FINANCE_OFFICER
+  PROCUREMENT_OFFICER
+  CONTRACT_OWNER
+  AUDITOR
+  VIEWER
+}
+
+model User {
+  id               String       @id @default(uuid()) @db.Uuid
+  identityProvider String       @map("identity_provider")
+  subject          String
+  email            String?
+  displayName      String?      @map("display_name")
+  memberships      Membership[]
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  @@unique([identityProvider, subject])
+  @@index([email])
+  @@map("users")
+}
+
+model Organization {
+  id          String             @id @default(uuid()) @db.Uuid
+  slug        String             @unique
+  name        String
+  status      OrganizationStatus @default(ACTIVE)
+  memberships Membership[]
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  @@map("organizations")
+}
+
+model Membership {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  role           OrganizationRole
+  status         MembershipStatus @default(ACTIVE)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  @@unique([organizationId, userId])
+  @@index([userId, status])
+  @@map("memberships")
+}

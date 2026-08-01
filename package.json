@@ -11,7 +11,7 @@
   "packageManager": "pnpm@10.15.0",
   "scripts": {
     "build": "pnpm --filter './packages/**' build && pnpm --filter './apps/**' build",
-    "check": "node scripts/verify-foundation.mjs && pnpm -r --if-present check",
+    "check": "node scripts/verify-foundation.mjs && pnpm db:generate && pnpm -r --if-present check",
     "dev": "pnpm --filter './apps/**' --parallel dev",
     "dev:api": "pnpm --filter @kal-flow/api dev",
     "dev:web": "pnpm --filter @kal-flow/web dev",

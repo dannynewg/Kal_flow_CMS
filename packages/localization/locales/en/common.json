@@ -1,5 +1,1 @@
-{
-  "app.name": "Kal_flow",
-  "language.english": "English",
-  "language.amharic": "Amharic"
-}
+{"app.name":"Kal_flow","auth.signIn":"Sign in","auth.signOut":"Sign out"}

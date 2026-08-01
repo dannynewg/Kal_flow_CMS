@@ -1,4 +1,5 @@
 import { Controller, Get, Version } from '@nestjs/common';
+import { Public } from '../auth/public.decorator';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 export interface HealthResponse {
@@ -10,6 +11,7 @@ export interface HealthResponse {
 @ApiTags('health')
 @Controller('health')
 export class HealthController {
+  @Public()
   @Get()
   @Version('1')
   @ApiOperation({ summary: 'Confirm that the API process is healthy' })

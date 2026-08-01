@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "prisma generate",
-    "check": "prisma validate",
+    "build": "prisma generate && tsc -p tsconfig.json",
+    "check": "prisma validate && tsc --noEmit -p tsconfig.json",
     "generate": "prisma generate",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
@@ -19,5 +19,7 @@
     "@types/node": "^26.1.2",
     "prisma": "^7.9.1",
     "typescript": "catalog:"
-  }
+  },
+  "main": "dist/src/index.js",
+  "types": "src/index.ts"
 }

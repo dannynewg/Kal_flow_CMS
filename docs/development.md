@@ -18,6 +18,7 @@ corepack enable
 pnpm install --frozen-lockfile
 pnpm infra:up
 pnpm db:generate
+pnpm db:migrate
 pnpm dev
 pnpm check
 ```
@@ -38,3 +39,9 @@ Use `pnpm infra:down` to stop services. `pnpm infra:reset` deletes local develop
 | Redis | localhost:6379 |
 
 The example credentials are safe only for isolated local development. Production environments must inject unique secrets through their deployment platform.
+
+## Local authentication
+
+The development realm imports a confidential `kal-flow-web` client using Authorization Code with PKCE and a bearer-only `kal-flow-api` audience. Sign in with `admin@kalflow.local` and the temporary password `ChangeMe123!`; Keycloak requires a password change on first login. These credentials are strictly for an isolated development environment.
+
+After login, the user may create an organization through the BFF endpoint. The creator receives the owner membership atomically. Existing organization data remains inaccessible until an active membership grants the required permission.

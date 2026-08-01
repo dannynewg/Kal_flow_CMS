@@ -22,3 +22,7 @@ This directory contains technical and product documentation for Kal_flow.
 - `deployment.md`
 
 Architecture decisions are stored under `architecture/adr/`. Accepted decisions remain in the repository; a later decision should supersede an earlier ADR rather than rewriting its history.
+
+## Accepted security decisions
+
+- [ADR-0002: Separate Identity from Organization Authorization](architecture/adr/0002-identity-organizations-and-authorization.md)

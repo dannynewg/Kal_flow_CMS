@@ -17,12 +17,15 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "@kal-flow/database": "workspace:*",
+    "jose": "^6.1.0"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
     "tsx": "^4.23.1",
     "typescript": "catalog:",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "@types/express": "^5.0.5"
   }
 }

@@ -55,6 +55,12 @@ Authentication and authorization are deliberately separate:
 - Kal_flow stores organizations, memberships, department roles, contract permissions, and approval authority.
 - NestJS performs the final authorization check for every protected operation.
 
+## Organization authorization
+
+Keycloak identities are synchronized into the application user table on the first authenticated API request. Access to an organization requires an active membership in an active organization. Roles map to named permissions in NestJS; frontend visibility never grants authority.
+
+The initial roles are owner, administrator, contract manager, legal officer, department manager, finance officer, procurement officer, contract owner, auditor, and viewer. Organization creation atomically grants the creator the owner membership. General membership operations cannot transfer ownership.
+
 ## Data principles
 
 - Use UUID primary keys.
@@ -75,3 +81,4 @@ The modular monolith may be split only when measured scaling, reliability, owner
 ## Architecture decisions
 
 - [ADR-0001: Adopt the Initial Application Stack](architecture/adr/0001-application-stack.md) — Accepted
+- [ADR-0002: Separate Identity from Organization Authorization](architecture/adr/0002-identity-organizations-and-authorization.md) — Accepted

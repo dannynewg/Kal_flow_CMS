@@ -314,7 +314,7 @@ pnpm check
 
 The web application is available at `http://localhost:3000`, the API health endpoint at `http://localhost:4000/v1/health`, and OpenAPI documentation at `http://localhost:4000/docs`. Keycloak is available at `http://localhost:8080` and the MinIO console at `http://localhost:9001`. See the [development environment guide](docs/development.md) and [configuration reference](docs/configuration.md).
 
-The example credentials are for isolated local development only. Never reuse them in production or commit real passwords, tokens, private keys, or client secrets.
+The example credentials are for isolated local development only. The imported development user is `admin@kalflow.local` with temporary password `ChangeMe123!`; Keycloak requires it to be changed on first login. Never reuse these values in production or commit real passwords, tokens, private keys, or client secrets.
 
 ## Project Structure
 
@@ -347,7 +347,7 @@ Kal_flow_CMS/
 └── README.md
 ```
 
-The application directories contain executable foundations for Next.js, NestJS, Prisma, and BullMQ; business-domain modules will be added incrementally. Domain modules—including organizations, users, contracts, templates, clauses, workflows, approvals, obligations, documents, notifications, reports, audit, and localization—will live within the NestJS API rather than as independently deployed microservices.
+The application directories now include executable Keycloak authentication, an Auth.js BFF session, organization and membership persistence, and NestJS role/permission guards. Contract-domain modules will be added incrementally. Domain modules—including organizations, users, contracts, templates, clauses, workflows, approvals, obligations, documents, notifications, reports, audit, and localization—will live within the NestJS API rather than as independently deployed microservices.
 
 ## Localization Guidelines
 
@@ -479,7 +479,7 @@ Contributors should preserve the following principles:
 - [x] Select and document the application technology stack
 - [x] Add initial application structure
 - [x] Scaffold executable web, API, worker, and database foundations
-- [ ] Add authentication and role-based access control
+- [x] Add Keycloak authentication, organization membership, and role-based access control foundation
 - [ ] Add organization and department management
 - [ ] Add contract request intake
 - [ ] Add centralized contract repository
