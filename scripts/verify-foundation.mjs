@@ -6,6 +6,7 @@ const requiredPaths = [
   '.github/workflows/foundation.yml',
   '.github/workflows/pages.yml',
   'apps/api/src/main.ts',
+  'apps/api/vitest.config.mts',
   'apps/api/src/auth/authentication.guard.ts',
   'apps/api/src/authorization/authorization.guard.ts',
   'apps/api/src/organizations/organizations.controller.ts',
