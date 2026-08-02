@@ -288,11 +288,11 @@ The backend remains one deployable application with explicit domain modules so c
 
 ## Getting Started
 
-The executable application foundation is ready. It provides a localized Next.js web app, a versioned NestJS API with OpenAPI, a BullMQ worker, a Prisma database package, organization management, contract request intake and approval workflow, GitHub Codespaces/Dev Container configuration, local Docker infrastructure, and CI validation.
+The executable application foundation is ready. It provides a polished bilingual Next.js workspace, a versioned NestJS API with OpenAPI, a BullMQ worker, a Prisma database package, organization management, contract request intake and approval workflow, GitHub Codespaces/Dev Container configuration, local Docker infrastructure, and CI validation. The authenticated interface includes a responsive bento dashboard, searchable and filterable registers, workflow timelines, organization administration, accessible interaction states, and complete English/Amharic navigation.
 
 ### Public development showcase
 
-The repository publishes `apps/showcase` to GitHub Pages on every relevant change to `main`. This zero-cost preview is a static product demonstration with fictional sample data; it does not connect to Keycloak, NestJS, PostgreSQL, Redis, or MinIO. The authenticated Next.js workspace now supports the request-to-active-contract lifecycle and document attachments. See [persistent staging deployment](docs/staging-deployment.md) for the complete stack.
+The repository publishes `apps/showcase` to GitHub Pages on every relevant change to `main`. This zero-cost preview is a static product demonstration with fictional sample data; it does not connect to Keycloak, NestJS, PostgreSQL, Redis, or MinIO. The authenticated Next.js workspace now supports the request-to-active-contract lifecycle, document attachments, and organization administration. See the [interface system](docs/interface-system.md) for UI conventions and [persistent staging deployment](docs/staging-deployment.md) for the complete stack.
 
 ### Private Codespaces preview
 
