@@ -7,6 +7,7 @@ Kal_flow separates authentication from tenant authorization. Keycloak proves ide
 - OIDC signature, issuer, expiry, and API-audience verification
 - Authorization Code + PKCE and encrypted HttpOnly browser sessions
 - Organization-scoped permission checks on every management route
+- Organization-scoped contract intake, ownership, version, review, and activation checks
 - Explicit owner-only ownership transfer with transactional role changes
 - Department parent and membership checks constrained to the same organization
 - Cryptographically random invitation tokens with only SHA-256 digests persisted
@@ -24,3 +25,4 @@ Kal_flow separates authentication from tenant authorization. Keycloak proves ide
 - Never log access tokens, refresh tokens, invitation tokens, passwords, or uploaded contract contents.
 
 See [Organization and department management](organization-management.md) for endpoints and lifecycle invariants.
+See [Contract request intake and workflow](contract-workflow.md) for contract lifecycle permissions and integrity rules.

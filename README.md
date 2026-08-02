@@ -288,7 +288,7 @@ The backend remains one deployable application with explicit domain modules so c
 
 ## Getting Started
 
-The executable application foundation is ready. It provides a localized Next.js web app, a versioned NestJS API with OpenAPI, a BullMQ worker, a Prisma database package, GitHub Codespaces/Dev Container configuration, local Docker infrastructure, and CI validation.
+The executable application foundation is ready. It provides a localized Next.js web app, a versioned NestJS API with OpenAPI, a BullMQ worker, a Prisma database package, organization management, contract request intake and approval workflow, GitHub Codespaces/Dev Container configuration, local Docker infrastructure, and CI validation.
 
 ### Public development showcase
 
@@ -356,7 +356,7 @@ Kal_flow_CMS/
 └── README.md
 ```
 
-The application directories now include executable Keycloak authentication, an Auth.js BFF session, organization and membership persistence, and NestJS role/permission guards. Contract-domain modules will be added incrementally. Domain modules—including organizations, users, contracts, templates, clauses, workflows, approvals, obligations, documents, notifications, reports, audit, and localization—will live within the NestJS API rather than as independently deployed microservices.
+The application directories now include executable Keycloak authentication, an Auth.js BFF session, organization and membership persistence, NestJS role/permission guards, and the first contract-domain module. Request intake, triage, conversion, version snapshots, ordered review rounds, approval, revision, and activation are implemented. Remaining domain modules—including templates, clauses, obligations, documents, notifications, reports, and expanded localization—will live within the NestJS API rather than as independently deployed microservices.
 
 ## Localization Guidelines
 
@@ -491,12 +491,12 @@ Contributors should preserve the following principles:
 - [x] Add Keycloak authentication, organization membership, and role-based access control foundation
 - [x] Add a private Codespaces development preview
 - [x] Add organization and department management, invitations, ownership transfer, and audit events
-- [ ] Add contract request intake
-- [ ] Add centralized contract repository
+- [x] Add contract request intake, triage, and conversion
+- [x] Add the first centralized contract repository and lifecycle workflow
 - [ ] Add Ethiopian contract template library
 - [ ] Add reusable legal clause library
 - [ ] Add Amharic and English localization
-- [ ] Add configurable approval workflows
+- [x] Add role-based sequential approval workflow foundations
 - [ ] Add contract version comparison
 - [ ] Add obligation and milestone tracking
 - [ ] Add expiration and renewal alerts

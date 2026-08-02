@@ -1,0 +1,83 @@
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CurrentPrincipal } from '../auth/current-principal.decorator';
+import type { AuthenticatedPrincipal } from '../auth/principal';
+import { RequirePermissions } from '../authorization/require-permissions.decorator';
+import { ContractsService } from './contracts.service';
+import { ActivateContractDto, ConvertContractRequestDto, CreateContractRequestDto, CreateContractVersionDto, DecideReviewStepDto, StartContractReviewDto, TriageContractRequestDto, UpdateContractRequestDto } from './dto';
+
+@ApiTags('contract requests')
+@ApiBearerAuth('keycloak')
+@Controller({ path: 'organizations/:organizationId/contract-requests', version: '1' })
+export class ContractRequestsController {
+  constructor(private readonly contracts: ContractsService) {}
+
+  @Post() @RequirePermissions('contract.request.create')
+  create(@Param('organizationId') organizationId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal, @Body() input: CreateContractRequestDto) {
+    return this.contracts.createRequest(organizationId, principal, input);
+  }
+
+  @Get() @RequirePermissions('contract.request.read')
+  list(@Param('organizationId') organizationId: string) { return this.contracts.listRequests(organizationId); }
+
+  @Get(':requestId') @RequirePermissions('contract.request.read')
+  get(@Param('organizationId') organizationId: string, @Param('requestId') requestId: string) { return this.contracts.getRequest(organizationId, requestId); }
+
+  @Patch(':requestId') @RequirePermissions('contract.request.create')
+  update(@Param('organizationId') organizationId: string, @Param('requestId') requestId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal, @Body() input: UpdateContractRequestDto) {
+    return this.contracts.updateRequest(organizationId, requestId, principal, input);
+  }
+
+  @Post(':requestId/submit') @RequirePermissions('contract.request.create')
+  submit(@Param('organizationId') organizationId: string, @Param('requestId') requestId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal) {
+    return this.contracts.submitRequest(organizationId, requestId, principal);
+  }
+
+  @Post(':requestId/cancel') @RequirePermissions('contract.request.create')
+  cancel(@Param('organizationId') organizationId: string, @Param('requestId') requestId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal) {
+    return this.contracts.cancelRequest(organizationId, requestId, principal);
+  }
+
+  @Post(':requestId/triage') @RequirePermissions('contract.request.triage')
+  triage(@Param('organizationId') organizationId: string, @Param('requestId') requestId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal, @Body() input: TriageContractRequestDto) {
+    return this.contracts.triageRequest(organizationId, requestId, principal, input);
+  }
+
+  @Post(':requestId/convert') @RequirePermissions('contract.request.triage')
+  convert(@Param('organizationId') organizationId: string, @Param('requestId') requestId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal, @Body() input: ConvertContractRequestDto) {
+    return this.contracts.convertRequest(organizationId, requestId, principal, input);
+  }
+}
+
+@ApiTags('contracts')
+@ApiBearerAuth('keycloak')
+@Controller({ path: 'organizations/:organizationId/contracts', version: '1' })
+export class ContractsController {
+  constructor(private readonly contracts: ContractsService) {}
+
+  @Get() @RequirePermissions('contract.read')
+  list(@Param('organizationId') organizationId: string) { return this.contracts.listContracts(organizationId); }
+
+  @Get(':contractId') @RequirePermissions('contract.read')
+  get(@Param('organizationId') organizationId: string, @Param('contractId') contractId: string) { return this.contracts.getContract(organizationId, contractId); }
+
+  @Post(':contractId/versions') @RequirePermissions('contract.manage')
+  addVersion(@Param('organizationId') organizationId: string, @Param('contractId') contractId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal, @Body() input: CreateContractVersionDto) {
+    return this.contracts.addVersion(organizationId, contractId, principal, input);
+  }
+
+  @Post(':contractId/review') @RequirePermissions('contract.manage')
+  startReview(@Param('organizationId') organizationId: string, @Param('contractId') contractId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal, @Body() input: StartContractReviewDto) {
+    return this.contracts.startReview(organizationId, contractId, principal, input);
+  }
+
+  @Post(':contractId/review-steps/:stepId/decision') @RequirePermissions('contract.review')
+  decide(@Param('organizationId') organizationId: string, @Param('contractId') contractId: string, @Param('stepId') stepId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal, @Body() input: DecideReviewStepDto) {
+    return this.contracts.decideReviewStep(organizationId, contractId, stepId, principal, input);
+  }
+
+  @Post(':contractId/activate') @RequirePermissions('contract.activate')
+  activate(@Param('organizationId') organizationId: string, @Param('contractId') contractId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal, @Body() input: ActivateContractDto) {
+    return this.contracts.activate(organizationId, contractId, principal, input);
+  }
+}

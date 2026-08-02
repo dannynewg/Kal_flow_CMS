@@ -14,8 +14,15 @@ describe('role permissions', () => {
     expect(roleHasPermissions('AUDITOR', ['audit.read'])).toBe(true);
     expect(roleHasPermissions('AUDITOR', ['organization.manage'])).toBe(false);
   });
-  it('keeps viewers read-only', () => {
+  it('lets ordinary members request contracts without managing them', () => {
     expect(roleHasPermissions('VIEWER',['organization.read'])).toBe(true);
+    expect(roleHasPermissions('VIEWER',['contract.request.create'])).toBe(true);
+    expect(roleHasPermissions('VIEWER',['contract.manage'])).toBe(false);
     expect(roleHasPermissions('VIEWER',['membership.manage'])).toBe(false);
+  });
+  it('separates triage, review, and activation authority', () => {
+    expect(roleHasPermissions('CONTRACT_MANAGER', ['contract.request.triage','contract.activate'])).toBe(true);
+    expect(roleHasPermissions('LEGAL_OFFICER', ['contract.review'])).toBe(true);
+    expect(roleHasPermissions('LEGAL_OFFICER', ['contract.activate'])).toBe(false);
   });
 });

@@ -12,6 +12,7 @@ This directory contains technical and product documentation for Kal_flow.
 - [Localization](localization.md)
 - [Security Architecture](security.md)
 - [Organization and department management](organization-management.md)
+- [Contract request intake and workflow](contract-workflow.md)
 
 ## Planned documentation
 
@@ -19,7 +20,6 @@ This directory contains technical and product documentation for Kal_flow.
 - `database.md`
 - `api.md`
 - `permissions.md`
-- `workflows.md`
 - `templates.md`
 - `deployment.md`
 

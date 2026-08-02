@@ -65,6 +65,12 @@ Departments are tenant-owned hierarchical records. Parent validation and members
 
 Organization, membership, department, invitation, and ownership mutations write an audit event inside the same PostgreSQL transaction. Audit events are append-only: the API exposes paginated reads but no update or delete operation.
 
+## Contract lifecycle
+
+Contract intake and execution use explicit commands rather than arbitrary status edits. A requester submits a departmental request, a contract manager triages and assigns it, and conversion creates exactly one contract. Contracts retain immutable content versions and numbered review rounds. Review steps are sequential within a round and require both the configured organization role and, when present, the named assignee. A changes-requested decision preserves the completed round; a new version returns the contract to drafting and a later submission creates a new round.
+
+Every lifecycle mutation is organization-scoped and writes an append-only audit event in the same transaction. Monetary amounts use minor units, references are server generated, and an expiration date cannot precede its effective date. See [Contract request intake and workflow](contract-workflow.md).
+
 ## Data principles
 
 - Use UUID primary keys.

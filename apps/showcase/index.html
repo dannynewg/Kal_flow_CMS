@@ -23,6 +23,7 @@
 
         <nav aria-label="Primary navigation">
           <button class="nav-item active" data-view="dashboard"><span class="nav-icon">⌂</span><span data-copy="dashboard">Dashboard</span></button>
+          <button class="nav-item" data-view="requests"><span class="nav-icon">＋</span><span data-copy="requests">Requests</span><span class="nav-count amber">4</span></button>
           <button class="nav-item" data-view="contracts"><span class="nav-icon">▤</span><span data-copy="contracts">Contracts</span><span class="nav-count">24</span></button>
           <button class="nav-item" data-view="approvals"><span class="nav-icon">✓</span><span data-copy="approvals">Approvals</span><span class="nav-count amber">6</span></button>
           <button class="nav-item" data-view="obligations"><span class="nav-icon">◷</span><span data-copy="obligations">Obligations</span></button>
@@ -89,6 +90,20 @@
             <div class="panel-title"><div><h2 data-copy="recent">Recent contracts</h2><p data-copy="recentSub">Latest activity across your organization</p></div><button class="text-button" data-view-target="contracts" data-copy="viewContracts">View all contracts</button></div>
             <div class="table-wrap"><table><thead><tr><th data-copy="contract">Contract</th><th data-copy="counterparty">Counterparty</th><th data-copy="department">Department</th><th data-copy="value">Value</th><th data-copy="expiry">Expiry</th><th data-copy="status">Status</th></tr></thead><tbody id="recentRows"></tbody></table></div>
           </article>
+        </section>
+
+        <section class="view" id="requests">
+          <div class="page-heading"><div><p class="kicker" data-copy="intake">Intake</p><h1 data-copy="requestTitle">Contract requests</h1><p data-copy="requestSub">Capture business needs, triage risk, and convert approved intake into controlled contracts.</p></div><button class="primary" data-action="request">＋ <span data-copy="newRequest">New request</span></button></div>
+          <div class="workflow-strip">
+            <article class="workflow-stage done"><small>01</small><strong data-copy="draftStage">Draft</strong><span>2</span></article>
+            <article class="workflow-stage current"><small>02</small><strong data-copy="submittedStage">Submitted</strong><span>4</span></article>
+            <article class="workflow-stage"><small>03</small><strong data-copy="triagedStage">Triaged</strong><span>3</span></article>
+            <article class="workflow-stage"><small>04</small><strong data-copy="convertedStage">Converted</strong><span>12</span></article>
+          </div>
+          <div class="request-layout">
+            <div class="panel"><div class="panel-title"><div><h2 data-copy="intakeQueue">Intake queue</h2><p data-copy="intakeQueueSub">Requests awaiting triage and assignment</p></div><button class="ghost" data-copy="filterButton">Filters</button></div><div class="request-list" id="requestCards"></div></div>
+            <aside class="panel request-detail"><span class="badge review">TRIAGED</span><small>KF-REQ-2026-04F10A2C</small><h2>Fleet maintenance framework</h2><p>Establish a two-year preventive maintenance agreement for the company delivery fleet.</p><dl><div><dt data-copy="counterparty">Counterparty</dt><dd>Abay Automotive Services</dd></div><div><dt data-copy="department">Department</dt><dd>Operations</dd></div><div><dt data-copy="value">Value</dt><dd>ETB 4.8M</dd></div><div><dt data-copy="risk">Risk</dt><dd>Medium</dd></div><div><dt data-copy="assignee">Assignee</dt><dd>Alem Tesfaye</dd></div></dl><button class="primary full" data-action="convert" data-copy="convertContract">Convert to contract</button></aside>
+          </div>
         </section>
 
         <section class="view" id="contracts">
