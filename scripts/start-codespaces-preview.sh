@@ -10,7 +10,7 @@ set -a
 source .env
 set +a
 
-if [[ ! -x packages/database/node_modules/.bin/prisma ]]; then
+if [[ ! -x packages/database/node_modules/.bin/prisma || ! -x packages/database/node_modules/.bin/tsx ]]; then
   echo "Workspace dependencies are incomplete; repairing the pnpm installation..."
   if [[ "${CODESPACES:-false}" == "true" ]]; then
     sudo mkdir -p /home/node/.local/share/pnpm
