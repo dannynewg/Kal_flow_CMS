@@ -4,7 +4,7 @@
 
 The project is built around the legal, linguistic, and operational requirements of Ethiopian users, including support for Ethiopian contract practices, reusable local templates, and the Amharic language.
 
-> **Project status:** Early development.
+> **Project status:** First authenticated contract workflow implemented; persistent staging configuration available.
 
 > **Live preview:** Explore the public [Kal_flow development showcase](https://dannynewg.github.io/Kal_flow_CMS/). It uses sample data and demonstrates the planned dashboard, contract register, approvals, obligations, reports, bilingual interface, and organization access views. Authentication and data changes are intentionally disabled because GitHub Pages is static hosting.
 
@@ -292,7 +292,7 @@ The executable application foundation is ready. It provides a localized Next.js 
 
 ### Public development showcase
 
-The repository publishes `apps/showcase` to GitHub Pages on every relevant change to `main`. This zero-cost preview is a static product demonstration with fictional sample data; it does not connect to Keycloak, NestJS, PostgreSQL, Redis, or MinIO. The complete authenticated system remains available through local development and will move to persistent staging after the first usable dashboard and contract module are ready.
+The repository publishes `apps/showcase` to GitHub Pages on every relevant change to `main`. This zero-cost preview is a static product demonstration with fictional sample data; it does not connect to Keycloak, NestJS, PostgreSQL, Redis, or MinIO. The authenticated Next.js workspace now supports the request-to-active-contract lifecycle and document attachments. See [persistent staging deployment](docs/staging-deployment.md) for the complete stack.
 
 ### Private Codespaces preview
 

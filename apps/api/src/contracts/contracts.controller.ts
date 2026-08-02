@@ -1,9 +1,11 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Patch, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { CurrentPrincipal } from '../auth/current-principal.decorator';
 import type { AuthenticatedPrincipal } from '../auth/principal';
 import { RequirePermissions } from '../authorization/require-permissions.decorator';
 import { ContractsService } from './contracts.service';
+import { DocumentsService } from './documents.service';
 import { ActivateContractDto, ConvertContractRequestDto, CreateContractRequestDto, CreateContractVersionDto, DecideReviewStepDto, StartContractReviewDto, TriageContractRequestDto, UpdateContractRequestDto } from './dto';
 
 @ApiTags('contract requests')
@@ -53,10 +55,28 @@ export class ContractRequestsController {
 @ApiBearerAuth('keycloak')
 @Controller({ path: 'organizations/:organizationId/contracts', version: '1' })
 export class ContractsController {
-  constructor(private readonly contracts: ContractsService) {}
+  constructor(private readonly contracts: ContractsService, private readonly documents: DocumentsService) {}
 
   @Get() @RequirePermissions('contract.read')
   list(@Param('organizationId') organizationId: string) { return this.contracts.listContracts(organizationId); }
+
+  @Get(':contractId/documents') @RequirePermissions('document.read')
+  listDocuments(@Param('organizationId') organizationId: string, @Param('contractId') contractId: string) {
+    return this.documents.list(organizationId, contractId);
+  }
+
+  @Post(':contractId/documents') @RequirePermissions('document.upload')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: Number(process.env.MAX_UPLOAD_SIZE_MB ?? 25) * 1024 * 1024 } }))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ schema: { type: 'object', required: ['file'], properties: { file: { type: 'string', format: 'binary' }, contractVersionId: { type: 'string', format: 'uuid' } } } })
+  uploadDocument(@Param('organizationId') organizationId: string, @Param('contractId') contractId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal, @UploadedFile() file: Express.Multer.File | undefined, @Body('contractVersionId') contractVersionId?: string) {
+    return this.documents.upload(organizationId, contractId, principal, file, contractVersionId);
+  }
+
+  @Get(':contractId/documents/:documentId/download') @RequirePermissions('document.read')
+  downloadDocument(@Param('organizationId') organizationId: string, @Param('contractId') contractId: string, @Param('documentId') documentId: string) {
+    return this.documents.download(organizationId, contractId, documentId);
+  }
 
   @Get(':contractId') @RequirePermissions('contract.read')
   get(@Param('organizationId') organizationId: string, @Param('contractId') contractId: string) { return this.contracts.getContract(organizationId, contractId); }

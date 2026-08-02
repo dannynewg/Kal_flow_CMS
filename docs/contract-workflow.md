@@ -33,6 +33,9 @@ The requester may cancel their own request while it is still draft or submitted.
 | Start review round | `POST .../contracts/:contractId/review` | `contract.manage` |
 | Record decision | `POST .../contracts/:contractId/review-steps/:stepId/decision` | `contract.review` |
 | Activate contract | `POST .../contracts/:contractId/activate` | `contract.activate` |
+| List documents | `GET .../contracts/:contractId/documents` | `document.read` |
+| Upload PDF/DOCX | `POST .../contracts/:contractId/documents` | `document.upload` |
+| Create signed download | `GET .../contracts/:contractId/documents/:documentId/download` | `document.read` |
 
 All endpoints also require an active membership in the active organization. IDs for departments, owners, assignees, contracts, requests, and review steps are resolved inside that organization boundary.
 
@@ -47,4 +50,6 @@ All endpoints also require an active membership in the active organization. IDs 
 - Expiration cannot precede the effective date.
 - Request, conversion, version, review, approval, change-request, and activation mutations write append-only audit events in the same transaction.
 
-Document bytes, templates, clause composition, signatures, and file comparison are deliberately deferred to later phases. This phase stores controlled contract content snapshots so those modules can attach to a stable contract and version identity.
+PDF and DOCX attachments are stored under randomized tenant/contract object keys. The API validates type and size, computes a SHA-256 fingerprint, writes metadata to PostgreSQL, and issues five-minute signed download URLs without exposing storage credentials. Upload audit metadata includes the fingerprint and never includes document bytes.
+
+Templates, clause composition, electronic signatures, malware scanning, and file comparison remain later phases. Staging must not be promoted to production until document malware scanning and backup/restore drills are in place.

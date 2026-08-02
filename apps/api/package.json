@@ -10,22 +10,25 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1101.0",
+    "@aws-sdk/s3-request-presigner": "^3.1101.0",
+    "@kal-flow/database": "workspace:*",
     "@nestjs/common": "^11.1.28",
     "@nestjs/core": "^11.1.28",
     "@nestjs/platform-express": "^11.1.28",
     "@nestjs/swagger": "^11.4.6",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "jose": "^6.1.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2",
-    "@kal-flow/database": "workspace:*",
-    "jose": "^6.1.0"
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
+    "@types/express": "^5.0.5",
+    "@types/multer": "^2.2.0",
     "@types/node": "^26.1.2",
     "tsx": "^4.23.1",
     "typescript": "catalog:",
-    "vitest": "^4.1.10",
-    "@types/express": "^5.0.5"
+    "vitest": "^4.1.10"
   }
 }

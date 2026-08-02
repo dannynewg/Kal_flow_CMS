@@ -1,0 +1,210 @@
+name: kal-flow-staging
+
+x-app: &app
+  image: ${KAL_FLOW_IMAGE:-kal-flow-staging:latest}
+  build:
+    context: ../..
+    dockerfile: infrastructure/docker/Dockerfile.staging
+  restart: unless-stopped
+  networks: [private]
+
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      IDP_DOMAIN: ${IDP_DOMAIN}
+      STORAGE_DOMAIN: ${STORAGE_DOMAIN}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ../staging/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+      minio: { condition: service_healthy }
+    networks: [private]
+
+  web:
+    <<: *app
+    command: pnpm --filter @kal-flow/web start
+    environment:
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_URL: https://${APP_DOMAIN}
+      AUTH_TRUST_HOST: "true"
+      API_URL: http://api:4000
+      KEYCLOAK_URL: https://${IDP_DOMAIN}
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      KEYCLOAK_REALM: kal-flow
+      KEYCLOAK_WEB_CLIENT_ID: kal-flow-web
+      KEYCLOAK_WEB_CLIENT_SECRET: ${KEYCLOAK_WEB_CLIENT_SECRET}
+    depends_on:
+      api: { condition: service_healthy }
+      keycloak-config: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  api:
+    <<: *app
+    command: pnpm --filter @kal-flow/api start
+    environment:
+      API_PORT: 4000
+      WEB_URL: https://${APP_DOMAIN}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      KEYCLOAK_URL: https://${IDP_DOMAIN}
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      KEYCLOAK_REALM: kal-flow
+      KEYCLOAK_API_AUDIENCE: kal-flow-api
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_ENDPOINT: https://${STORAGE_DOMAIN}
+      S3_REGION: us-east-1
+      S3_BUCKET: kal-flow-contracts
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_FORCE_PATH_STYLE: "true"
+      S3_AUTO_CREATE_BUCKET: "true"
+      MAX_UPLOAD_SIZE_MB: 25
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      keycloak: { condition: service_healthy }
+      minio: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:4000/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    <<: *app
+    command: pnpm --filter @kal-flow/worker start
+    environment:
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  migrate:
+    <<: *app
+    restart: "no"
+    command: pnpm --filter @kal-flow/database migrate:deploy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [private]
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [private]
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    restart: unless-stopped
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+    volumes: [minio-data:/data]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks: [private]
+
+  keycloak-postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+    volumes: [keycloak-postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [private]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3
+    restart: unless-stopped
+    command: start --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME: https://${IDP_DOMAIN}
+      KC_PROXY_HEADERS: xforwarded
+    volumes:
+      - ../keycloak/realm:/opt/keycloak/data/import:ro
+    depends_on:
+      keycloak-postgres: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '200 OK' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 24
+      start_period: 40s
+    networks: [private]
+
+  keycloak-config:
+    image: quay.io/keycloak/keycloak:26.3
+    restart: "no"
+    entrypoint: ["/bin/sh", "/config/configure-keycloak.sh"]
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_WEB_CLIENT_SECRET: ${KEYCLOAK_WEB_CLIENT_SECRET}
+    volumes:
+      - ../staging/configure-keycloak.sh:/config/configure-keycloak.sh:ro
+    depends_on:
+      keycloak: { condition: service_healthy }
+    networks: [private]
+
+networks:
+  private:
+
+volumes:
+  caddy-data:
+  caddy-config:
+  postgres-data:
+  redis-data:
+  minio-data:
+  keycloak-postgres-data:

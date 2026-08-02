@@ -13,6 +13,7 @@ This directory contains technical and product documentation for Kal_flow.
 - [Security Architecture](security.md)
 - [Organization and department management](organization-management.md)
 - [Contract request intake and workflow](contract-workflow.md)
+- [Persistent staging deployment](staging-deployment.md)
 
 ## Planned documentation
 
@@ -21,7 +22,6 @@ This directory contains technical and product documentation for Kal_flow.
 - `api.md`
 - `permissions.md`
 - `templates.md`
-- `deployment.md`
 
 Architecture decisions are stored under `architecture/adr/`. Accepted decisions remain in the repository; a later decision should supersede an earlier ADR rather than rewriting its history.
 

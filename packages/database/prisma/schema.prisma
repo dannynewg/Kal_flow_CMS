@@ -69,6 +69,12 @@ enum ReviewStepStatus {
   SKIPPED
 }
 
+enum DocumentStatus {
+  PENDING
+  AVAILABLE
+  QUARANTINED
+}
+
 model User {
   id                  String               @id @default(uuid()) @db.Uuid
   identityProvider    String               @map("identity_provider")
@@ -83,6 +89,7 @@ model User {
   triagedRequests     ContractRequest[]    @relation("ContractRequestAssignee")
   contractReviews     ContractReviewStep[]
   createdVersions     ContractVersion[]
+  uploadedDocuments   ContractDocument[]
   createdAt           DateTime             @default(now()) @map("created_at")
   updatedAt           DateTime             @updatedAt @map("updated_at")
 
@@ -105,6 +112,7 @@ model Organization {
   auditEvents      AuditEvent[]
   contractRequests ContractRequest[]
   contracts        Contract[]
+  documents        ContractDocument[]
   createdAt        DateTime           @default(now()) @map("created_at")
   updatedAt        DateTime           @updatedAt @map("updated_at")
 
@@ -261,6 +269,7 @@ model Contract {
   owner             Membership           @relation(fields: [ownerMembershipId], references: [id], onDelete: Restrict)
   versions          ContractVersion[]
   reviewSteps       ContractReviewStep[]
+  documents         ContractDocument[]
   createdAt         DateTime             @default(now()) @map("created_at")
   updatedAt         DateTime             @updatedAt @map("updated_at")
 
@@ -271,21 +280,46 @@ model Contract {
 }
 
 model ContractVersion {
-  id              String   @id @default(uuid()) @db.Uuid
-  contractId      String   @map("contract_id") @db.Uuid
-  versionNumber   Int      @map("version_number")
+  id              String             @id @default(uuid()) @db.Uuid
+  contractId      String             @map("contract_id") @db.Uuid
+  versionNumber   Int                @map("version_number")
   title           String
   summary         String?
   content         String
-  changeNote      String?  @map("change_note")
-  createdByUserId String   @map("created_by_user_id") @db.Uuid
-  contract        Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  createdBy       User     @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
-  createdAt       DateTime @default(now()) @map("created_at")
+  changeNote      String?            @map("change_note")
+  createdByUserId String             @map("created_by_user_id") @db.Uuid
+  contract        Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  createdBy       User               @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  documents       ContractDocument[]
+  createdAt       DateTime           @default(now()) @map("created_at")
 
   @@unique([contractId, versionNumber])
   @@index([contractId, createdAt])
   @@map("contract_versions")
+}
+
+model ContractDocument {
+  id                String           @id @default(uuid()) @db.Uuid
+  organizationId    String           @map("organization_id") @db.Uuid
+  contractId        String           @map("contract_id") @db.Uuid
+  contractVersionId String?          @map("contract_version_id") @db.Uuid
+  uploadedByUserId  String           @map("uploaded_by_user_id") @db.Uuid
+  objectKey         String           @unique @map("object_key")
+  originalName      String           @map("original_name")
+  mimeType          String           @map("mime_type")
+  sizeBytes         BigInt           @map("size_bytes")
+  sha256            String
+  status            DocumentStatus   @default(PENDING)
+  organization      Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contract          Contract         @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  contractVersion   ContractVersion? @relation(fields: [contractVersionId], references: [id], onDelete: SetNull)
+  uploadedBy        User             @relation(fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  @@index([organizationId, contractId, createdAt])
+  @@index([contractVersionId])
+  @@map("contract_documents")
 }
 
 model ContractReviewStep {
