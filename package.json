@@ -21,6 +21,7 @@
     "preview:logs": "tail -f .codespaces/preview.log",
     "db:generate": "pnpm --filter @kal-flow/database generate",
     "db:migrate": "pnpm --filter @kal-flow/database migrate:dev",
+    "db:seed": "pnpm --filter @kal-flow/database seed",
     "db:studio": "pnpm --filter @kal-flow/database studio",
     "format": "pnpm -r --if-present format",
     "lint": "pnpm -r --if-present lint",

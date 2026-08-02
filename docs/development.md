@@ -26,6 +26,21 @@ pnpm preview:start
 pnpm check
 ```
 
+`pnpm preview:start` also idempotently creates the fictional **Kal_flow Demo
+Enterprise** workspace. It includes departments, role-specific members,
+invitations, requests at several intake stages, contracts throughout the review
+lifecycle, immutable versions, review decisions, and audit events. Sign in as
+`admin@kalflow.local` to access it.
+
+To repair missing demo records without restarting the applications, run:
+
+```bash
+pnpm db:seed
+```
+
+The seed never deletes data, never duplicates its records, and does not reset
+workflow changes made while testing.
+
 Rebuilding the Dev Container preserves Docker volumes. Running `pnpm infra:reset` intentionally deletes all local preview data.
 
 ## Local Docker workflow
@@ -37,6 +52,7 @@ pnpm install --frozen-lockfile
 pnpm infra:up
 pnpm db:generate
 pnpm db:migrate
+pnpm db:seed
 pnpm dev
 pnpm check
 ```

@@ -21,6 +21,8 @@ fi
 
 pnpm db:generate
 pnpm --filter @kal-flow/database migrate:deploy
+pnpm db:seed
+pnpm --filter @kal-flow/database build
 node scripts/configure-codespaces.mjs --keycloak
 
 pid_file=.codespaces/preview.pid
