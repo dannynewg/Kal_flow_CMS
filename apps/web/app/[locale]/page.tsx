@@ -13,7 +13,14 @@ export default async function Dashboard({ params }: { params: Promise<{ locale: 
   const page = content[locale];
   const session = await auth();
   if (session?.user) {
-    const signOutAction = async () => { 'use server'; await signOut({ redirectTo: `/${locale}` }); };
+    const signOutAction = async () => {
+      'use server';
+      const returnTo = `${process.env.WEB_URL ?? process.env.AUTH_URL ?? 'http://localhost:3000'}/${locale}`;
+      const keycloakLogout = new URL(`${process.env.KEYCLOAK_URL ?? 'http://localhost:8080'}/realms/${process.env.KEYCLOAK_REALM ?? 'kal-flow'}/protocol/openid-connect/logout`);
+      keycloakLogout.searchParams.set('post_logout_redirect_uri', returnTo);
+      keycloakLogout.searchParams.set('client_id', process.env.KEYCLOAK_WEB_CLIENT_ID ?? 'kal-flow-web');
+      await signOut({ redirectTo: keycloakLogout.toString() });
+    };
     return <ContractWorkspace locale={locale} email={session.user.email ?? session.user.name ?? 'Kal_flow user'} signOutAction={signOutAction} />;
   }
   return <main className="login-shell"><nav className="login-nav"><div className="brand"><span className="brand-mark">K</span><strong>Kal_flow</strong></div><Link className="language" href={page.target}>{page.language}</Link></nav><section className="login-card"><div className="login-copy"><span className="kicker">{page.kicker}</span><h1>{page.title}</h1><p>{page.body}</p><div className="trust-row">{page.trust.map((item) => <span key={item}>✓ {item}</span>)}</div></div><div className="login-action"><div className="seal">K</div><h2>{page.workspace}</h2><p>{page.auth}</p><form action={async () => { 'use server'; await signIn('keycloak', { redirectTo: `/${locale}` }); }}><button className="primary" type="submit">{page.signIn} →</button></form><small>{page.policy}</small></div></section></main>;

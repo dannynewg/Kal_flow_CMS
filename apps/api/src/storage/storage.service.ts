@@ -1,4 +1,4 @@
-import { CreateBucketCommand, GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { CreateBucketCommand, DeleteObjectCommand, GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Injectable } from '@nestjs/common';
 
@@ -31,6 +31,10 @@ export class StorageService {
     const expiresIn = 5 * 60;
     const url = await getSignedUrl(this.publicClient, new GetObjectCommand({ Bucket: this.bucket, Key: objectKey }), { expiresIn });
     return { url, expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString() };
+  }
+
+  async remove(objectKey: string): Promise<void> {
+    await this.internal.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: objectKey }));
   }
 
   private ensureBucket(): Promise<void> {

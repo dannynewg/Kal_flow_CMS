@@ -55,11 +55,9 @@ const ids = {
 };
 
 async function seedUser(id: string, subject: string, email: string, displayName: string) {
-  return prisma.user.upsert({
-    where: { identityProvider_subject: { identityProvider: issuer, subject } },
-    create: { id, identityProvider: issuer, subject, email, displayName },
-    update: {},
-  });
+  const existing = await prisma.user.findFirst({ where: { OR: [{ id }, { identityProvider: issuer, subject }, { email: { equals: email, mode: 'insensitive' } }] } });
+  if (existing) return prisma.user.update({ where: { id: existing.id }, data: { identityProvider: issuer, subject, email, displayName } });
+  return prisma.user.create({ data: { id, identityProvider: issuer, subject, email, displayName } });
 }
 
 async function main() {
@@ -68,11 +66,11 @@ async function main() {
     orderBy: { createdAt: 'asc' },
   });
   const admin = existingAdmin ?? await seedUser(ids.users.admin, '00000000-0000-4000-8000-000000000001', 'admin@kalflow.local', 'Kal_flow Administrator');
-  const manager = await seedUser(ids.users.manager, 'demo-contract-manager', 'meron.bekele@kalflow.demo', 'Meron Bekele');
-  const legal = await seedUser(ids.users.legal, 'demo-legal-officer', 'nahom.tadesse@kalflow.demo', 'Nahom Tadesse');
-  const finance = await seedUser(ids.users.finance, 'demo-finance-officer', 'selamawit.girma@kalflow.demo', 'Selamawit Girma');
-  const procurement = await seedUser(ids.users.procurement, 'demo-procurement-officer', 'dawit.kebede@kalflow.demo', 'Dawit Kebede');
-  const viewer = await seedUser(ids.users.viewer, 'demo-auditor', 'hana.mekonnen@kalflow.demo', 'Hana Mekonnen');
+  const manager = await seedUser(ids.users.manager, '00000000-0000-4000-8000-000000000002', 'manager@kalflow.local', 'Meron Bekele');
+  const legal = await seedUser(ids.users.legal, '00000000-0000-4000-8000-000000000003', 'legal@kalflow.local', 'Nahom Tadesse');
+  const finance = await seedUser(ids.users.finance, '00000000-0000-4000-8000-000000000004', 'finance@kalflow.local', 'Selamawit Girma');
+  const procurement = await seedUser(ids.users.procurement, '00000000-0000-4000-8000-000000000005', 'procurement@kalflow.local', 'Dawit Kebede');
+  const viewer = await seedUser(ids.users.viewer, '00000000-0000-4000-8000-000000000006', 'auditor@kalflow.local', 'Hana Mekonnen');
 
   const organization = await prisma.organization.upsert({
     where: { slug: 'kal-flow-demo' },
@@ -294,6 +292,17 @@ async function main() {
       update: {},
     });
   }
+
+  await prisma.notificationRule.upsert({
+    where: { id: 'f0000000-0000-4000-8000-000000000001' },
+    create: { id: 'f0000000-0000-4000-8000-000000000001', organizationId: organization.id, name: 'Legal team critical alerts', channel: 'EMAIL', recipient: 'legal@kalflow.local', alertTypes: ['OBLIGATION_OVERDUE', 'NOTICE_DEADLINE', 'CONTRACT_EXPIRY'], minimumSeverity: 'WARNING' },
+    update: {},
+  });
+  await prisma.notificationRule.upsert({
+    where: { id: 'f0000000-0000-4000-8000-000000000002' },
+    create: { id: 'f0000000-0000-4000-8000-000000000002', organizationId: organization.id, name: 'Operations SMS reminders', channel: 'SMS', recipient: '+251911000000', alertTypes: ['OBLIGATION_DUE', 'OBLIGATION_OVERDUE'], minimumSeverity: 'CRITICAL' },
+    update: {},
+  });
 
   const auditSpecs = [
     ['a0000000-0000-4000-8000-000000000001', 'demo.seeded', 'organization', organization.id, { source: 'database-seed' }],

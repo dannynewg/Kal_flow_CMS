@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import type { AuthenticatedPrincipal } from '../auth/principal';
 import { AuditService } from '../organizations/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
-import type { CreateClauseDto, CreateTemplateDto, InstantiateTemplateDto } from './dto';
+import type { CreateClauseDto, CreateTemplateDto, InstantiateTemplateDto, UpdateClauseDto, UpdateTemplateDto } from './dto';
 
 @Injectable()
 export class DraftingService {
@@ -45,6 +45,24 @@ export class DraftingService {
     });
   }
 
+  async updateClause(organizationId: string, clauseId: string, principal: AuthenticatedPrincipal, input: UpdateClauseDto) {
+    const current = await this.prisma.client.clauseLibraryItem.findFirst({ where: { id: clauseId, organizationId } });
+    if (!current) throw new NotFoundException('Clause not found');
+    return this.prisma.client.$transaction(async (tx) => {
+      const clause = await tx.clauseLibraryItem.update({ where: { id: clauseId }, data: { category: input.category?.trim(), titleEn: input.titleEn?.trim(), titleAm: input.titleAm?.trim(), bodyEn: input.bodyEn?.trim(), bodyAm: input.bodyAm?.trim(), guidance: input.guidance?.trim(), riskLevel: input.riskLevel } });
+      await this.audit.write(tx, { organizationId, actorUserId: principal.userId, action: 'clause.updated', entityType: 'clause_library_item', entityId: clauseId });
+      return clause;
+    });
+  }
+
+  async deleteClause(organizationId: string, clauseId: string, principal: AuthenticatedPrincipal) {
+    const clause = await this.prisma.client.clauseLibraryItem.findFirst({ where: { id: clauseId, organizationId }, include: { _count: { select: { templateClauses: true } } } });
+    if (!clause) throw new NotFoundException('Clause not found');
+    if (clause._count.templateClauses) throw new ConflictException('Remove this clause from all templates before deleting it');
+    await this.prisma.client.$transaction(async (tx) => { await this.audit.write(tx, { organizationId, actorUserId: principal.userId, action: 'clause.deleted', entityType: 'clause_library_item', entityId: clauseId, metadata: { code: clause.code } }); await tx.clauseLibraryItem.delete({ where: { id: clauseId } }); });
+    return { deleted: true };
+  }
+
   listTemplates(organizationId: string) {
     return this.prisma.client.contractTemplate.findMany({
       where: { organizationId, status: 'ACTIVE' },
@@ -71,6 +89,29 @@ export class DraftingService {
       if (error.code === 'P2002') throw new ConflictException('A template with this code already exists');
       throw error;
     });
+  }
+
+  async updateTemplate(organizationId: string, templateId: string, principal: AuthenticatedPrincipal, input: UpdateTemplateDto) {
+    const current = await this.prisma.client.contractTemplate.findFirst({ where: { id: templateId, organizationId } });
+    if (!current) throw new NotFoundException('Template not found');
+    if (input.clauses) {
+      const ids = input.clauses.map((item) => item.clauseId);
+      if (new Set(ids).size !== ids.length || await this.prisma.client.clauseLibraryItem.count({ where: { id: { in: ids }, organizationId, status: 'ACTIVE' } }) !== ids.length) throw new BadRequestException('Every template clause must be unique, active, and belong to this organization');
+    }
+    return this.prisma.client.$transaction(async (tx) => {
+      if (input.clauses) { await tx.contractTemplateClause.deleteMany({ where: { templateId } }); await tx.contractTemplateClause.createMany({ data: input.clauses.map((item, index) => ({ templateId, clauseId: item.clauseId, sequence: index + 1, isRequired: item.isRequired ?? true })) }); }
+      const template = await tx.contractTemplate.update({ where: { id: templateId }, data: { contractType: input.contractType?.trim(), nameEn: input.nameEn?.trim(), nameAm: input.nameAm?.trim(), descriptionEn: input.descriptionEn?.trim(), descriptionAm: input.descriptionAm?.trim() }, include: { clauses: { orderBy: { sequence: 'asc' }, include: { clause: true } } } });
+      await this.audit.write(tx, { organizationId, actorUserId: principal.userId, action: 'contract_template.updated', entityType: 'contract_template', entityId: templateId });
+      return template;
+    });
+  }
+
+  async deleteTemplate(organizationId: string, templateId: string, principal: AuthenticatedPrincipal) {
+    const template = await this.prisma.client.contractTemplate.findFirst({ where: { id: templateId, organizationId }, include: { _count: { select: { generatedVersions: true } } } });
+    if (!template) throw new NotFoundException('Template not found');
+    if (template._count.generatedVersions) throw new ConflictException('Templates used to generate contract versions are retained for auditability');
+    await this.prisma.client.$transaction(async (tx) => { await this.audit.write(tx, { organizationId, actorUserId: principal.userId, action: 'contract_template.deleted', entityType: 'contract_template', entityId: templateId, metadata: { code: template.code } }); await tx.contractTemplate.delete({ where: { id: templateId } }); });
+    return { deleted: true };
   }
 
   async instantiate(organizationId: string, contractId: string, principal: AuthenticatedPrincipal, input: InstantiateTemplateDto) {

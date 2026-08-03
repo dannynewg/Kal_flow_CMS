@@ -87,6 +87,18 @@ export class OrganizationsService {
     });
   }
 
+  async removeMember(organizationId: string, membershipId: string, principal: AuthenticatedPrincipal) {
+    const existing = await this.prisma.client.membership.findFirst({ where: { id: membershipId, organizationId }, include: { _count: { select: { ownedContracts: true, assignedObligations: true } } } });
+    if (!existing) throw new NotFoundException('Membership not found');
+    if (existing.role === 'OWNER') throw new ForbiddenException('Transfer ownership before removing the owner');
+    if (existing._count.ownedContracts || existing._count.assignedObligations) throw new ConflictException('Reassign owned contracts and obligations before removing this member');
+    await this.prisma.client.$transaction(async (tx) => {
+      await this.audit.write(tx, { organizationId, actorUserId: principal.userId, action: 'membership.deleted', entityType: 'membership', entityId: membershipId, metadata: { userId: existing.userId, role: existing.role } });
+      await tx.membership.delete({ where: { id: membershipId } });
+    });
+    return { deleted: true };
+  }
+
   async transferOwnership(organizationId: string, principal: AuthenticatedPrincipal, input: TransferOwnershipDto) {
     return this.prisma.client.$transaction(async (tx) => {
       const currentOwner = await tx.membership.findUnique({ where: { organizationId_userId: { organizationId, userId: principal.userId } } });

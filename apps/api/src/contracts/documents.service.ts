@@ -1,10 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { createHash, randomUUID } from 'node:crypto';
 import type { AuthenticatedPrincipal } from '../auth/principal';
 import { AuditService } from '../organizations/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
-import type { SearchDocumentsDto, UpdateDocumentDto } from './dto';
+import type { SaveDocumentPagesDto, SearchDocumentsDto, UpdateDocumentDto } from './dto';
 
 const allowedTypes = new Set(['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']);
 
@@ -70,6 +70,7 @@ export class DocumentsService {
       await this.storage.put(objectKey, file.buffer, file.mimetype);
       return await this.prisma.client.$transaction(async (tx) => {
         const document = await tx.contractDocument.update({ where: { id: pending.id }, data: { status: 'AVAILABLE' } });
+        await tx.documentPage.create({ data: { documentId: document.id, pageNumber: 1, title: 'Page 1', content: '' } });
         await this.audit.write(tx, { organizationId, actorUserId: principal.userId, action: 'contract.document_uploaded', entityType: 'contract_document', entityId: document.id, metadata: { contractId, contractVersionId: contractVersionId ?? null, fileName: document.originalName, sizeBytes: document.sizeBytes.toString(), sha256 } });
         return { ...document, sizeBytes: document.sizeBytes.toString() };
       });
@@ -116,6 +117,55 @@ export class DocumentsService {
       const document = await tx.contractDocument.update({ where: { id: documentId }, data: { status: 'ARCHIVED' } });
       await this.audit.write(tx, { organizationId, actorUserId: principal.userId, action: 'contract.document_archived', entityType: 'contract_document', entityId: documentId, metadata: { contractId: existing.contractId, sha256: existing.sha256 } });
       return { ...document, sizeBytes: document.sizeBytes.toString() };
+    });
+  }
+
+  async restore(organizationId: string, documentId: string, principal: AuthenticatedPrincipal) {
+    const existing = await this.requireDocument(organizationId, documentId);
+    if (existing.status !== 'ARCHIVED') throw new ConflictException('Only archived documents can be restored');
+    return this.prisma.client.$transaction(async (tx) => {
+      const document = await tx.contractDocument.update({ where: { id: documentId }, data: { status: 'AVAILABLE' } });
+      await this.audit.write(tx, { organizationId, actorUserId: principal.userId, action: 'contract.document_restored', entityType: 'contract_document', entityId: documentId, metadata: { contractId: existing.contractId } });
+      return { ...document, sizeBytes: document.sizeBytes.toString() };
+    });
+  }
+
+  async remove(organizationId: string, documentId: string, principal: AuthenticatedPrincipal) {
+    const existing = await this.requireDocument(organizationId, documentId);
+    if (existing.status !== 'ARCHIVED') throw new ConflictException('Archive the document before permanent deletion');
+    if (existing.retentionUntil && existing.retentionUntil > new Date()) throw new ConflictException('This document is protected by its retention date');
+    await this.storage.remove(existing.objectKey);
+    await this.prisma.client.$transaction(async (tx) => {
+      await this.audit.write(tx, { organizationId, actorUserId: principal.userId, action: 'contract.document_deleted', entityType: 'contract_document', entityId: documentId, metadata: { contractId: existing.contractId, fileName: existing.originalName, sha256: existing.sha256 } });
+      await tx.contractDocument.delete({ where: { id: documentId } });
+    });
+    return { deleted: true };
+  }
+
+  async workspace(organizationId: string, documentId: string) {
+    const document = await this.prisma.client.contractDocument.findFirst({
+      where: { id: documentId, organizationId, status: { in: ['AVAILABLE', 'ARCHIVED'] } },
+      include: { pages: { orderBy: { pageNumber: 'asc' } }, revisions: { orderBy: { revisionNumber: 'desc' }, take: 20, select: { id: true, revisionNumber: true, summary: true, createdAt: true, createdBy: { select: { displayName: true, email: true } } } } },
+    });
+    if (!document) throw new NotFoundException('Document workspace not found');
+    const preview = await this.storage.createDownloadUrl(document.objectKey);
+    return { document: { id: document.id, originalName: document.originalName, mimeType: document.mimeType, status: document.status }, pages: document.pages.length ? document.pages : [{ pageNumber: 1, title: 'Page 1', content: '' }], revisions: document.revisions, preview };
+  }
+
+  async saveWorkspace(organizationId: string, documentId: string, principal: AuthenticatedPrincipal, input: SaveDocumentPagesDto) {
+    const document = await this.requireDocument(organizationId, documentId);
+    if (document.status !== 'AVAILABLE') throw new ConflictException('Only available documents can be edited');
+    const ordered = [...input.pages].sort((a, b) => a.pageNumber - b.pageNumber);
+    if (ordered.some((page, index) => page.pageNumber !== index + 1)) throw new BadRequestException('Page numbers must be consecutive and begin at 1');
+    return this.prisma.client.$transaction(async (tx) => {
+      const latest = await tx.documentRevision.aggregate({ where: { documentId }, _max: { revisionNumber: true } });
+      const revisionNumber = (latest._max.revisionNumber ?? 0) + 1;
+      const snapshot = ordered.map(({ pageNumber, title, content }) => ({ pageNumber, title: title ?? null, content }));
+      await tx.documentRevision.create({ data: { documentId, revisionNumber, summary: input.summary?.trim(), pages: snapshot, createdByUserId: principal.userId } });
+      await tx.documentPage.deleteMany({ where: { documentId } });
+      await tx.documentPage.createMany({ data: ordered.map((page) => ({ documentId, pageNumber: page.pageNumber, title: page.title?.trim(), content: page.content })) });
+      await this.audit.write(tx, { organizationId, actorUserId: principal.userId, action: 'contract.document_pages_updated', entityType: 'contract_document', entityId: documentId, metadata: { contractId: document.contractId, revisionNumber, pageCount: ordered.length } });
+      return { revisionNumber, pages: await tx.documentPage.findMany({ where: { documentId }, orderBy: { pageNumber: 'asc' } }) };
     });
   }
 

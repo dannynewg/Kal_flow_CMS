@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { OrganizationsService } from './organizations.service';
 
@@ -32,5 +32,11 @@ describe('OrganizationsService ownership transfer', () => {
     const prisma = { client: { $transaction: vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)) } };
     const service = new OrganizationsService(prisma as never, { write: vi.fn() } as never);
     await expect(service.transferOwnership('organization-1', { userId: 'user-owner', subject: 'subject', issuer: 'issuer' }, { membershipId: 'membership-owner' })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('requires work reassignment before removing a member', async () => {
+    const prisma = { client: { membership: { findFirst: vi.fn().mockResolvedValue({ id: 'membership-1', organizationId: 'organization-1', userId: 'user-1', role: 'CONTRACT_MANAGER', _count: { ownedContracts: 1, assignedObligations: 0 } }) } } };
+    const service = new OrganizationsService(prisma as never, { write: vi.fn() } as never);
+    await expect(service.removeMember('organization-1', 'membership-1', { userId: 'owner-1', subject: 'subject', issuer: 'issuer' })).rejects.toBeInstanceOf(ConflictException);
   });
 });

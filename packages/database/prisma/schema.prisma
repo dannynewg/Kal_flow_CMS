@@ -147,6 +147,18 @@ enum LibraryItemStatus {
   ARCHIVED
 }
 
+enum NotificationChannel {
+  EMAIL
+  SMS
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
 model User {
   id                   String               @id @default(uuid()) @db.Uuid
   identityProvider     String               @map("identity_provider")
@@ -165,6 +177,7 @@ model User {
   completedObligations ContractObligation[] @relation("ObligationCompleter")
   renewalDecisions     ContractRenewal[]    @relation("RenewalDecisionMaker")
   acknowledgedAlerts   OperationalAlert[]   @relation("AlertAcknowledger")
+  documentRevisions    DocumentRevision[]
   createdAt            DateTime             @default(now()) @map("created_at")
   updatedAt            DateTime             @updatedAt @map("updated_at")
 
@@ -193,6 +206,8 @@ model Organization {
   operationalAlerts OperationalAlert[]
   clauses           ClauseLibraryItem[]
   contractTemplates ContractTemplate[]
+  notificationRules NotificationRule[]
+  notificationDeliveries NotificationDelivery[]
   createdAt         DateTime             @default(now()) @map("created_at")
   updatedAt         DateTime             @updatedAt @map("updated_at")
 
@@ -464,6 +479,8 @@ model ContractDocument {
   contract          Contract         @relation(fields: [contractId], references: [id], onDelete: Cascade)
   contractVersion   ContractVersion? @relation(fields: [contractVersionId], references: [id], onDelete: SetNull)
   uploadedBy        User             @relation(fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+  pages             DocumentPage[]
+  revisions         DocumentRevision[]
   createdAt         DateTime         @default(now()) @map("created_at")
   updatedAt         DateTime         @updatedAt @map("updated_at")
 
@@ -471,6 +488,37 @@ model ContractDocument {
   @@index([organizationId, status, category, createdAt])
   @@index([contractVersionId])
   @@map("contract_documents")
+}
+
+model DocumentPage {
+  id         String           @id @default(uuid()) @db.Uuid
+  documentId String           @map("document_id") @db.Uuid
+  pageNumber Int              @map("page_number")
+  title      String?
+  content    String           @default("")
+  document   ContractDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
+
+  @@unique([documentId, pageNumber])
+  @@index([documentId])
+  @@map("document_pages")
+}
+
+model DocumentRevision {
+  id              String           @id @default(uuid()) @db.Uuid
+  documentId      String           @map("document_id") @db.Uuid
+  revisionNumber  Int              @map("revision_number")
+  summary         String?
+  pages           Json
+  createdByUserId String           @map("created_by_user_id") @db.Uuid
+  document        ContractDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdBy       User             @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  @@unique([documentId, revisionNumber])
+  @@index([documentId, createdAt])
+  @@map("document_revisions")
 }
 
 model ContractReviewStep {
@@ -566,10 +614,54 @@ model OperationalAlert {
   obligation           ContractObligation?      @relation(fields: [obligationId], references: [id], onDelete: Cascade)
   renewal              ContractRenewal?         @relation(fields: [renewalId], references: [id], onDelete: Cascade)
   acknowledgedBy       User?                    @relation("AlertAcknowledger", fields: [acknowledgedByUserId], references: [id], onDelete: SetNull)
+  notificationDeliveries NotificationDelivery[]
   createdAt            DateTime                 @default(now()) @map("created_at")
   updatedAt            DateTime                 @updatedAt @map("updated_at")
 
   @@index([organizationId, status, severity, dueAt])
   @@index([contractId, status])
   @@map("operational_alerts")
+}
+
+model NotificationRule {
+  id                 String                   @id @default(uuid()) @db.Uuid
+  organizationId     String                   @map("organization_id") @db.Uuid
+  name               String
+  channel            NotificationChannel
+  recipient          String
+  alertTypes         OperationalAlertType[]   @map("alert_types")
+  minimumSeverity    OperationalAlertSeverity @default(INFO) @map("minimum_severity")
+  enabled            Boolean                  @default(true)
+  organization       Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deliveries         NotificationDelivery[]
+  createdAt          DateTime                 @default(now()) @map("created_at")
+  updatedAt          DateTime                 @updatedAt @map("updated_at")
+
+  @@index([organizationId, enabled])
+  @@map("notification_rules")
+}
+
+model NotificationDelivery {
+  id             String                     @id @default(uuid()) @db.Uuid
+  organizationId String                     @map("organization_id") @db.Uuid
+  ruleId         String                     @map("rule_id") @db.Uuid
+  alertId        String                     @map("alert_id") @db.Uuid
+  channel        NotificationChannel
+  recipient      String
+  subject        String
+  body           String
+  status         NotificationDeliveryStatus @default(PENDING)
+  attemptCount   Int                        @default(0) @map("attempt_count")
+  providerId     String?                    @map("provider_id")
+  lastError      String?                    @map("last_error")
+  sentAt         DateTime?                  @map("sent_at")
+  organization   Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  rule           NotificationRule           @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  alert          OperationalAlert           @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  createdAt      DateTime                   @default(now()) @map("created_at")
+  updatedAt      DateTime                   @updatedAt @map("updated_at")
+
+  @@unique([ruleId, alertId])
+  @@index([organizationId, status, createdAt])
+  @@map("notification_deliveries")
 }

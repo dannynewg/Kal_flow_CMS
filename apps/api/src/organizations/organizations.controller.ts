@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentPrincipal } from '../auth/current-principal.decorator';
 import type { AuthenticatedPrincipal } from '../auth/principal';
@@ -34,6 +34,11 @@ export class OrganizationsController {
   @Patch(':organizationId/memberships/:membershipId') @RequirePermissions('membership.manage')
   updateMember(@Param('organizationId') organizationId: string, @Param('membershipId') membershipId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal, @Body() input: UpdateMembershipDto) {
     return this.organizations.updateMember(organizationId, membershipId, principal, input);
+  }
+
+  @Delete(':organizationId/memberships/:membershipId') @RequirePermissions('membership.manage')
+  removeMember(@Param('organizationId') organizationId: string, @Param('membershipId') membershipId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal) {
+    return this.organizations.removeMember(organizationId, membershipId, principal);
   }
 
   @Post(':organizationId/ownership-transfer') @RequirePermissions('organization.transfer')

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { CurrentPrincipal } from '../auth/current-principal.decorator';
@@ -6,7 +6,7 @@ import type { AuthenticatedPrincipal } from '../auth/principal';
 import { RequirePermissions } from '../authorization/require-permissions.decorator';
 import { ContractsService } from './contracts.service';
 import { DocumentsService } from './documents.service';
-import { ActivateContractDto, ConvertContractRequestDto, CreateContractRequestDto, CreateContractVersionDto, DecideReviewStepDto, SearchDocumentsDto, StartContractReviewDto, TriageContractRequestDto, UpdateContractRequestDto, UpdateDocumentDto } from './dto';
+import { ActivateContractDto, ConvertContractRequestDto, CreateContractRequestDto, CreateContractVersionDto, DecideReviewStepDto, SaveDocumentPagesDto, SearchDocumentsDto, StartContractReviewDto, TriageContractRequestDto, UpdateContractDto, UpdateContractRequestDto, UpdateDocumentDto } from './dto';
 
 @ApiTags('contract requests')
 @ApiBearerAuth('keycloak')
@@ -81,6 +81,12 @@ export class ContractsController {
   @Get(':contractId') @RequirePermissions('contract.read')
   get(@Param('organizationId') organizationId: string, @Param('contractId') contractId: string) { return this.contracts.getContract(organizationId, contractId); }
 
+  @Patch(':contractId') @RequirePermissions('contract.manage')
+  update(@Param('organizationId') organizationId: string, @Param('contractId') contractId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal, @Body() input: UpdateContractDto) { return this.contracts.updateContract(organizationId, contractId, principal, input); }
+
+  @Post(':contractId/cancel') @RequirePermissions('contract.manage')
+  cancel(@Param('organizationId') organizationId: string, @Param('contractId') contractId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal) { return this.contracts.cancelContract(organizationId, contractId, principal); }
+
   @Post(':contractId/versions') @RequirePermissions('contract.manage')
   addVersion(@Param('organizationId') organizationId: string, @Param('contractId') contractId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal, @Body() input: CreateContractVersionDto) {
     return this.contracts.addVersion(organizationId, contractId, principal, input);
@@ -121,6 +127,26 @@ export class DocumentCenterController {
   @Post(':documentId/archive') @RequirePermissions('document.manage')
   archive(@Param('organizationId') organizationId: string, @Param('documentId') documentId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal) {
     return this.documents.archive(organizationId, documentId, principal);
+  }
+
+  @Post(':documentId/restore') @RequirePermissions('document.manage')
+  restore(@Param('organizationId') organizationId: string, @Param('documentId') documentId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal) {
+    return this.documents.restore(organizationId, documentId, principal);
+  }
+
+  @Delete(':documentId') @RequirePermissions('document.manage')
+  remove(@Param('organizationId') organizationId: string, @Param('documentId') documentId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal) {
+    return this.documents.remove(organizationId, documentId, principal);
+  }
+
+  @Get(':documentId/workspace') @RequirePermissions('document.read')
+  workspace(@Param('organizationId') organizationId: string, @Param('documentId') documentId: string) {
+    return this.documents.workspace(organizationId, documentId);
+  }
+
+  @Put(':documentId/workspace') @RequirePermissions('document.manage')
+  saveWorkspace(@Param('organizationId') organizationId: string, @Param('documentId') documentId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal, @Body() input: SaveDocumentPagesDto) {
+    return this.documents.saveWorkspace(organizationId, documentId, principal, input);
   }
 
   @Get(':documentId/download') @RequirePermissions('document.read')

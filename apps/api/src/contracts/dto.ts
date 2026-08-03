@@ -1,5 +1,5 @@
 import { ContractRiskLevel, DocumentCategory, DocumentConfidentiality, OrganizationRole } from '@kal-flow/database';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsEnum, IsIn, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsEnum, IsIn, IsInt, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateContractRequestDto {
@@ -61,6 +61,17 @@ export class ActivateContractDto {
   @IsOptional() @IsDateString() expirationDate?: string;
 }
 
+export class UpdateContractDto {
+  @IsOptional() @IsUUID() departmentId?: string;
+  @IsOptional() @IsUUID() ownerMembershipId?: string;
+  @IsOptional() @IsString() @MinLength(3) @MaxLength(180) title?: string;
+  @IsOptional() @IsString() @MinLength(2) @MaxLength(80) contractType?: string;
+  @IsOptional() @IsString() @MinLength(2) @MaxLength(180) counterpartyName?: string;
+  @IsOptional() @Matches(/^\d+$/) valueMinor?: string;
+  @IsOptional() @Matches(/^[A-Z]{3}$/) currency?: string;
+  @IsOptional() @IsEnum(ContractRiskLevel) riskLevel?: ContractRiskLevel;
+}
+
 export class SearchDocumentsDto {
   @IsOptional() @IsString() @MaxLength(120) query?: string;
   @IsOptional() @IsEnum(DocumentCategory) category?: DocumentCategory;
@@ -75,4 +86,17 @@ export class UpdateDocumentDto {
   @IsOptional() @IsEnum(DocumentConfidentiality) confidentiality?: DocumentConfidentiality;
   @IsOptional() @IsArray() @ArrayMaxSize(12) @IsString({ each: true }) @MaxLength(40, { each: true }) tags?: string[];
   @IsOptional() @IsDateString() retentionUntil?: string;
+}
+
+export class DocumentPageDto {
+  @IsOptional() @IsUUID() id?: string;
+  @IsInt() @Min(1) @Max(500) pageNumber!: number;
+  @IsOptional() @IsString() @MaxLength(180) title?: string;
+  @IsString() @MaxLength(100000) content!: string;
+}
+
+export class SaveDocumentPagesDto {
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(500) @ValidateNested({ each: true }) @Type(() => DocumentPageDto)
+  pages!: DocumentPageDto[];
+  @IsOptional() @IsString() @MaxLength(500) summary?: string;
 }

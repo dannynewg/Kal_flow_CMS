@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentPrincipal } from '../auth/current-principal.decorator';
 import type { AuthenticatedPrincipal } from '../auth/principal';
@@ -24,6 +24,9 @@ export class OperationsController {
   @Post('obligations/:obligationId/complete') @RequirePermissions('operations.manage')
   completeObligation(@Param('organizationId') organizationId: string, @Param('obligationId') obligationId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal, @Body() input: CompleteObligationDto) { return this.operations.completeObligation(organizationId, obligationId, principal, input); }
 
+  @Delete('obligations/:obligationId') @RequirePermissions('operations.manage')
+  removeObligation(@Param('organizationId') organizationId: string, @Param('obligationId') obligationId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal) { return this.operations.removeObligation(organizationId, obligationId, principal); }
+
   @Get('renewals') @RequirePermissions('operations.read')
   renewals(@Param('organizationId') organizationId: string) { return this.operations.listRenewals(organizationId); }
 
@@ -32,6 +35,9 @@ export class OperationsController {
 
   @Post('renewals/:renewalId/decision') @RequirePermissions('renewal.manage')
   decideRenewal(@Param('organizationId') organizationId: string, @Param('renewalId') renewalId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal, @Body() input: DecideRenewalDto) { return this.operations.decideRenewal(organizationId, renewalId, principal, input); }
+
+  @Delete('renewals/:renewalId') @RequirePermissions('renewal.manage')
+  removeRenewal(@Param('organizationId') organizationId: string, @Param('renewalId') renewalId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal) { return this.operations.removeRenewal(organizationId, renewalId, principal); }
 
   @Get('operational-alerts') @RequirePermissions('operations.read')
   alerts(@Param('organizationId') organizationId: string) { return this.operations.listAlerts(organizationId); }

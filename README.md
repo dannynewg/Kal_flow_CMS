@@ -323,7 +323,18 @@ pnpm check
 
 The web application is available at `http://localhost:3000`, the API health endpoint at `http://localhost:4000/v1/health`, and OpenAPI documentation at `http://localhost:4000/docs`. Keycloak is available at `http://localhost:8080` and the MinIO console at `http://localhost:9001`. See the [development environment guide](docs/development.md) and [configuration reference](docs/configuration.md).
 
-The example credentials are for isolated local development only. The imported development user is `admin@kalflow.local` with temporary password `ChangeMe123!`; Keycloak requires it to be changed on first login. Never reuse these values in production or commit real passwords, tokens, private keys, or client secrets.
+The preview provisions role-specific identities for isolated local testing. Every account below uses password `ChangeMe123!` unless `DEMO_USER_PASSWORD` is changed before provisioning.
+
+| Email | Organization role |
+| --- | --- |
+| `admin@kalflow.local` | Owner |
+| `manager@kalflow.local` | Contract Manager |
+| `legal@kalflow.local` | Legal Officer |
+| `finance@kalflow.local` | Finance Officer |
+| `procurement@kalflow.local` | Procurement Officer |
+| `auditor@kalflow.local` | Auditor |
+
+The preview startup creates only missing identities, so existing Keycloak data and user-changed passwords are preserved. These credentials are development-only and must never be reused in production.
 
 ## Project Structure
 
@@ -503,7 +514,10 @@ Contributors should preserve the following principles:
 - [ ] Add counterparty management
 - [x] Add operational dashboards and reports
 - [x] Add governed document center and document search
-- [ ] Add calendar, email, and SMS integrations
+- [x] Add embedded PDF viewing and versioned multi-page document editing
+- [x] Add auditable email and SMS notification automation with provider webhooks
+- [x] Add role-specific local test identities and identity-provider logout
+- [ ] Add calendar integration
 - [ ] Add data import and export
 - [x] Add an application API
 - [x] Add automated tests and CI

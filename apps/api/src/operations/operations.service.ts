@@ -69,6 +69,13 @@ export class OperationsService {
     });
   }
 
+  async removeObligation(organizationId: string, obligationId: string, principal: AuthenticatedPrincipal) {
+    const obligation = await this.requireObligation(organizationId, obligationId);
+    if (obligation.status === 'COMPLETED') throw new ConflictException('Completed obligations are retained for auditability');
+    await this.prisma.client.$transaction(async (tx) => { await this.audit.write(tx, { organizationId, actorUserId: principal.userId, action: 'obligation.deleted', entityType: 'contract_obligation', entityId: obligationId, metadata: { contractId: obligation.contractId, title: obligation.title } }); await tx.contractObligation.delete({ where: { id: obligationId } }); });
+    return { deleted: true };
+  }
+
   async upsertRenewal(organizationId: string, contractId: string, principal: AuthenticatedPrincipal, input: UpsertRenewalDto) {
     const contract = await this.prisma.client.contract.findFirst({ where: { id: contractId, organizationId, status: { in: ['APPROVED', 'ACTIVE'] } } });
     if (!contract) throw new NotFoundException('Approved or active contract not found');
@@ -92,6 +99,14 @@ export class OperationsService {
       await this.audit.write(tx, { organizationId, actorUserId: principal.userId, action: 'renewal.decided', entityType: 'contract_renewal', entityId: renewalId, metadata: { contractId: renewal.contractId, decision: input.decision } });
       return decided;
     });
+  }
+
+  async removeRenewal(organizationId: string, renewalId: string, principal: AuthenticatedPrincipal) {
+    const renewal = await this.prisma.client.contractRenewal.findFirst({ where: { id: renewalId, organizationId } });
+    if (!renewal) throw new NotFoundException('Renewal record not found');
+    if (renewal.decision !== 'PENDING') throw new ConflictException('Decided renewals are retained for auditability');
+    await this.prisma.client.$transaction(async (tx) => { await this.audit.write(tx, { organizationId, actorUserId: principal.userId, action: 'renewal.deleted', entityType: 'contract_renewal', entityId: renewalId, metadata: { contractId: renewal.contractId } }); await tx.contractRenewal.delete({ where: { id: renewalId } }); });
+    return { deleted: true };
   }
 
   async listRenewals(organizationId: string) {

@@ -65,6 +65,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   session: { strategy: 'jwt', maxAge: 8 * 60 * 60 },
   callbacks: {
+    redirect({ url, baseUrl }) {
+      const target = new URL(url, baseUrl);
+      const logout = new URL(`${externalIssuer}/protocol/openid-connect/logout`);
+      if (target.origin === logout.origin && target.pathname === logout.pathname) return target.toString();
+      return target.origin === new URL(baseUrl).origin ? target.toString() : baseUrl;
+    },
     async jwt({ token, account }) {
       if (account) {
         return {

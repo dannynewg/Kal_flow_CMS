@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { AuthenticatedPrincipal } from '../auth/principal';
 import { AuditService } from '../organizations/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
-import type { ActivateContractDto, ConvertContractRequestDto, CreateContractRequestDto, CreateContractVersionDto, DecideReviewStepDto, StartContractReviewDto, TriageContractRequestDto, UpdateContractRequestDto } from './dto';
+import type { ActivateContractDto, ConvertContractRequestDto, CreateContractRequestDto, CreateContractVersionDto, DecideReviewStepDto, StartContractReviewDto, TriageContractRequestDto, UpdateContractDto, UpdateContractRequestDto } from './dto';
 
 @Injectable()
 export class ContractsService {
@@ -146,6 +146,32 @@ export class ContractsService {
     });
     if (!contract) throw new NotFoundException('Contract not found');
     return this.presentContract(contract);
+  }
+
+  async updateContract(organizationId: string, contractId: string, principal: AuthenticatedPrincipal, input: UpdateContractDto) {
+    const current = await this.prisma.client.contract.findFirst({ where: { id: contractId, organizationId } });
+    if (!current) throw new NotFoundException('Contract not found');
+    if (['IN_REVIEW', 'APPROVED', 'ACTIVE', 'CANCELLED'].includes(current.status)) throw new ConflictException('Only draft or changes-requested contracts can be edited');
+    if (input.departmentId && !(await this.prisma.client.department.findFirst({ where: { id: input.departmentId, organizationId, isActive: true } }))) throw new NotFoundException('Active department not found');
+    if (input.ownerMembershipId && !(await this.prisma.client.membership.findFirst({ where: { id: input.ownerMembershipId, organizationId, status: 'ACTIVE' } }))) throw new NotFoundException('Active contract owner not found');
+    return this.prisma.client.$transaction(async (tx) => {
+      const contract = await tx.contract.update({ where: { id: contractId }, data: { departmentId: input.departmentId, ownerMembershipId: input.ownerMembershipId, title: input.title?.trim(), contractType: input.contractType?.trim(), counterpartyName: input.counterpartyName?.trim(), valueMinor: input.valueMinor !== undefined ? BigInt(input.valueMinor) : undefined, currency: input.currency, riskLevel: input.riskLevel } });
+      await this.audit.write(tx, { organizationId, actorUserId: principal.userId, action: 'contract.updated', entityType: 'contract', entityId: contractId });
+      return this.presentContract(contract);
+    });
+  }
+
+  async cancelContract(organizationId: string, contractId: string, principal: AuthenticatedPrincipal) {
+    const current = await this.prisma.client.contract.findFirst({ where: { id: contractId, organizationId } });
+    if (!current) throw new NotFoundException('Contract not found');
+    if (current.status === 'ACTIVE') throw new ConflictException('Active contracts must be terminated through the renewal and termination workflow');
+    if (current.status === 'CANCELLED') return this.presentContract(current);
+    return this.prisma.client.$transaction(async (tx) => {
+      const contract = await tx.contract.update({ where: { id: contractId }, data: { status: 'CANCELLED' } });
+      await tx.contractReviewStep.updateMany({ where: { contractId, status: 'PENDING' }, data: { status: 'SKIPPED' } });
+      await this.audit.write(tx, { organizationId, actorUserId: principal.userId, action: 'contract.cancelled', entityType: 'contract', entityId: contractId });
+      return this.presentContract(contract);
+    });
   }
 
   async addVersion(organizationId: string, contractId: string, principal: AuthenticatedPrincipal, input: CreateContractVersionDto) {
