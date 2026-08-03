@@ -126,6 +126,11 @@ enum OperationalAlertStatus {
   RESOLVED
 }
 
+enum LibraryItemStatus {
+  ACTIVE
+  ARCHIVED
+}
+
 model User {
   id                   String               @id @default(uuid()) @db.Uuid
   identityProvider     String               @map("identity_provider")
@@ -170,6 +175,8 @@ model Organization {
   obligations       ContractObligation[]
   renewals          ContractRenewal[]
   operationalAlerts OperationalAlert[]
+  clauses           ClauseLibraryItem[]
+  contractTemplates ContractTemplate[]
   createdAt         DateTime             @default(now()) @map("created_at")
   updatedAt         DateTime             @updatedAt @map("updated_at")
 
@@ -341,22 +348,82 @@ model Contract {
 }
 
 model ContractVersion {
-  id              String             @id @default(uuid()) @db.Uuid
-  contractId      String             @map("contract_id") @db.Uuid
-  versionNumber   Int                @map("version_number")
-  title           String
-  summary         String?
-  content         String
-  changeNote      String?            @map("change_note")
-  createdByUserId String             @map("created_by_user_id") @db.Uuid
-  contract        Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  createdBy       User               @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
-  documents       ContractDocument[]
-  createdAt       DateTime           @default(now()) @map("created_at")
+  id               String             @id @default(uuid()) @db.Uuid
+  contractId       String             @map("contract_id") @db.Uuid
+  versionNumber    Int                @map("version_number")
+  title            String
+  summary          String?
+  content          String
+  changeNote       String?            @map("change_note")
+  createdByUserId  String             @map("created_by_user_id") @db.Uuid
+  sourceTemplateId String?            @map("source_template_id") @db.Uuid
+  contract         Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  createdBy        User               @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  sourceTemplate   ContractTemplate?  @relation(fields: [sourceTemplateId], references: [id], onDelete: SetNull)
+  documents        ContractDocument[]
+  createdAt        DateTime           @default(now()) @map("created_at")
 
   @@unique([contractId, versionNumber])
   @@index([contractId, createdAt])
+  @@index([sourceTemplateId])
   @@map("contract_versions")
+}
+
+model ClauseLibraryItem {
+  id              String                   @id @default(uuid()) @db.Uuid
+  organizationId  String                   @map("organization_id") @db.Uuid
+  code            String
+  category        String
+  titleEn         String                   @map("title_en")
+  titleAm         String                   @map("title_am")
+  bodyEn          String                   @map("body_en")
+  bodyAm          String                   @map("body_am")
+  guidance        String?
+  riskLevel       ContractRiskLevel        @default(MEDIUM) @map("risk_level")
+  status          LibraryItemStatus        @default(ACTIVE)
+  organization    Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  templateClauses ContractTemplateClause[]
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  updatedAt       DateTime                 @updatedAt @map("updated_at")
+
+  @@unique([organizationId, code])
+  @@index([organizationId, status, category])
+  @@map("clause_library_items")
+}
+
+model ContractTemplate {
+  id                String                   @id @default(uuid()) @db.Uuid
+  organizationId    String                   @map("organization_id") @db.Uuid
+  code              String
+  contractType      String                   @map("contract_type")
+  nameEn            String                   @map("name_en")
+  nameAm            String                   @map("name_am")
+  descriptionEn     String?                  @map("description_en")
+  descriptionAm     String?                  @map("description_am")
+  status            LibraryItemStatus        @default(ACTIVE)
+  organization      Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  clauses           ContractTemplateClause[]
+  generatedVersions ContractVersion[]
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
+
+  @@unique([organizationId, code])
+  @@index([organizationId, status, contractType])
+  @@map("contract_templates")
+}
+
+model ContractTemplateClause {
+  templateId String            @map("template_id") @db.Uuid
+  clauseId   String            @map("clause_id") @db.Uuid
+  sequence   Int
+  isRequired Boolean           @default(true) @map("is_required")
+  template   ContractTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  clause     ClauseLibraryItem @relation(fields: [clauseId], references: [id], onDelete: Restrict)
+
+  @@id([templateId, clauseId])
+  @@unique([templateId, sequence])
+  @@index([clauseId])
+  @@map("contract_template_clauses")
 }
 
 model ContractDocument {

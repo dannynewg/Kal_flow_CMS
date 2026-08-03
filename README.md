@@ -4,7 +4,7 @@
 
 The project is built around the legal, linguistic, and operational requirements of Ethiopian users, including support for Ethiopian contract practices, reusable local templates, and the Amharic language.
 
-> **Project status:** First authenticated contract workflow implemented; persistent staging configuration available.
+> **Project status:** Authenticated contract lifecycle, bilingual drafting library, contract operations, and persistent staging configuration implemented.
 
 > **Live preview:** Explore the public [Kal_flow development showcase](https://dannynewg.github.io/Kal_flow_CMS/). It uses sample data and demonstrates the planned dashboard, contract register, approvals, obligations, reports, bilingual interface, and organization access views. Authentication and data changes are intentionally disabled because GitHub Pages is static hosting.
 
@@ -493,21 +493,21 @@ Contributors should preserve the following principles:
 - [x] Add organization and department management, invitations, ownership transfer, and audit events
 - [x] Add contract request intake, triage, and conversion
 - [x] Add the first centralized contract repository and lifecycle workflow
-- [ ] Add Ethiopian contract template library
-- [ ] Add reusable legal clause library
-- [ ] Add Amharic and English localization
+- [x] Add Ethiopian contract template library foundation with demo content requiring legal review
+- [x] Add reusable legal clause library
+- [x] Add Amharic and English application localization
 - [x] Add role-based sequential approval workflow foundations
-- [ ] Add contract version comparison
-- [ ] Add obligation and milestone tracking
-- [ ] Add expiration and renewal alerts
+- [x] Add contract version comparison
+- [x] Add obligation and milestone tracking
+- [x] Add expiration and renewal alerts
 - [ ] Add counterparty management
-- [ ] Add dashboards and reports
+- [x] Add operational dashboards and reports
 - [ ] Add document search
 - [ ] Add calendar, email, and SMS integrations
 - [ ] Add data import and export
-- [ ] Add an application API
-- [ ] Add automated tests and CI
-- [ ] Add deployment and security documentation
+- [x] Add an application API
+- [x] Add automated tests and CI
+- [x] Add deployment and security documentation
 
 Roadmap items are proposals and do not represent guaranteed release commitments.
 

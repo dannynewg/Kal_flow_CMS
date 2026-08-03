@@ -42,6 +42,16 @@ const ids = {
     quarterlyReview: 'b0000000-0000-4000-8000-000000000005',
     exitPlan: 'b0000000-0000-4000-8000-000000000006',
   },
+  clauses: {
+    parties: 'd0000000-0000-4000-8000-000000000001', scope: 'd0000000-0000-4000-8000-000000000002',
+    payment: 'd0000000-0000-4000-8000-000000000003', confidentiality: 'd0000000-0000-4000-8000-000000000004',
+    data: 'd0000000-0000-4000-8000-000000000005', termination: 'd0000000-0000-4000-8000-000000000006',
+    governingLaw: 'd0000000-0000-4000-8000-000000000007', forceMajeure: 'd0000000-0000-4000-8000-000000000008',
+  },
+  templates: {
+    services: 'e0000000-0000-4000-8000-000000000001', nda: 'e0000000-0000-4000-8000-000000000002',
+    supply: 'e0000000-0000-4000-8000-000000000003',
+  },
 };
 
 async function seedUser(id: string, subject: string, email: string, displayName: string) {
@@ -133,14 +143,14 @@ async function main() {
     ['50000000-0000-4000-8000-000000000002', 'yonas.abate@example.test', 'VIEWER', 'REVOKED', 14],
   ] as const;
   for (const [id, email, role, status, expiresInDays] of invitations) {
-    await prisma.invitation.upsert({
-      where: { tokenHash: tokenHash(`kal-flow-demo:${email}`) },
-      create: {
+    const invitationTokenHash = tokenHash(`kal-flow-demo:${email}`);
+    const existingInvitation = await prisma.invitation.findFirst({ where: { OR: [{ id }, { tokenHash: invitationTokenHash }] }, select: { id: true } });
+    if (!existingInvitation) await prisma.invitation.create({
+      data: {
         id, organizationId: organization.id, email, role, status,
-        tokenHash: tokenHash(`kal-flow-demo:${email}`), invitedByUserId: admin.id,
+        tokenHash: invitationTokenHash, invitedByUserId: admin.id,
         expiresAt: dateFromNow(expiresInDays), ...(status === 'REVOKED' ? { revokedAt: dateFromNow(-2) } : {}),
       },
-      update: {},
     });
   }
 
@@ -200,6 +210,7 @@ async function main() {
     ['80000000-0000-4000-8000-000000000003', 'CON-2026-0003', 1, 'Legal retainer draft', 'Scope, response times, conflicts, confidentiality, and fee schedule.'],
     ['80000000-0000-4000-8000-000000000004', 'CON-2026-0004', 1, 'Executed catering agreement', 'Service levels, hygiene standards, pricing, and termination provisions.'],
     ['80000000-0000-4000-8000-000000000005', 'CON-2026-0005', 1, 'Approved managed services agreement', 'Service levels, escalation, security responsibilities, pricing, and exit assistance.'],
+    ['80000000-0000-4000-8000-000000000006', 'CON-2026-0004', 2, 'Executed catering agreement — revised', 'Service levels, monthly hygiene inspections, pricing, invoice reconciliation, and a thirty-day termination notice.'],
   ] as const;
   for (const [id, contractNumber, versionNumber, title, content] of versions) {
     await prisma.contractVersion.upsert({
@@ -207,6 +218,32 @@ async function main() {
       create: { id, contractId: contracts.get(contractNumber)!.id, versionNumber, title, summary: content, content, createdByUserId: manager.id },
       update: {},
     });
+  }
+
+  const clauseSpecs = [
+    [ids.clauses.parties, 'PARTIES', 'Foundation', 'Parties and purpose', 'ተዋዋይ ወገኖችና ዓላማ', '{{organization_name}} and {{counterparty_name}} enter into this agreement for the purpose described in the approved scope of work.', '{{organization_name}} እና {{counterparty_name}} በጸደቀው የሥራ ወሰን ውስጥ ለተገለጸው ዓላማ ይህን ውል ተዋውለዋል።', 'Confirm the registered names, addresses, and authority of both parties.', 'LOW'],
+    [ids.clauses.scope, 'SCOPE', 'Commercial', 'Scope and deliverables', 'የሥራ ወሰንና የሚቀርቡ ውጤቶች', '{{counterparty_name}} shall provide the services and deliverables in the agreed schedule, specifications, and acceptance criteria. Any material change requires written approval.', '{{counterparty_name}} በተስማሙበት የጊዜ ሰሌዳ፣ ዝርዝር መስፈርትና የተቀባይነት መለኪያ መሠረት አገልግሎቱንና ውጤቶቹን ያቀርባል። ማንኛውም ዋና ለውጥ የጽሑፍ ፈቃድ ይፈልጋል።', 'Attach or reference a measurable statement of work.', 'MEDIUM'],
+    [ids.clauses.payment, 'PAYMENT', 'Financial', 'Fees, tax, and payment', 'ክፍያ፣ ግብርና የክፍያ ሁኔታ', 'The total contract value is {{contract_value}}. Valid invoices are payable after acceptance and applicable Ethiopian taxes shall be handled according to law.', 'ጠቅላላ የውሉ ዋጋ {{contract_value}} ነው። ትክክለኛ ደረሰኞች ከተቀባይነት በኋላ ይከፈላሉ፤ ተፈጻሚ የኢትዮጵያ ግብሮችም በሕግ መሠረት ይፈጸማሉ።', 'Finance and qualified tax advisers must verify rates, withholding, and VAT treatment.', 'HIGH'],
+    [ids.clauses.confidentiality, 'CONFIDENTIALITY', 'Protection', 'Confidentiality', 'ሚስጥራዊነት', 'Each party shall protect confidential information with reasonable safeguards, use it only for this agreement, and disclose it only when authorized or legally required.', 'እያንዳንዱ ወገን ሚስጥራዊ መረጃን በተገቢ ጥበቃ ይጠብቃል፣ ለዚህ ውል ብቻ ይጠቀማል፣ እና በፈቃድ ወይም በሕግ ሲጠየቅ ብቻ ይገልጻል።', 'Define exclusions, survival period, and permitted recipients for the transaction.', 'MEDIUM'],
+    [ids.clauses.data, 'DATA_PROTECTION', 'Protection', 'Data protection and security', 'የመረጃ ጥበቃና ደህንነት', 'Personal and organizational data shall be processed only for authorized purposes using documented access, security, incident-response, retention, and deletion controls.', 'የግልና የድርጅት መረጃ ለተፈቀደ ዓላማ ብቻ በተመዘገበ የመዳረሻ፣ የደህንነት፣ የክስተት ምላሽ፣ የማቆያና የማጥፋት ቁጥጥር ይካሄዳል።', 'Security and legal teams must tailor this clause to the data, hosting location, and applicable rules.', 'HIGH'],
+    [ids.clauses.termination, 'TERMINATION', 'Lifecycle', 'Termination and exit', 'የውል ማቋረጥና መውጫ', 'Either party may terminate for an uncured material breach after written notice. On exit, the parties shall complete payment, return property, transfer records, and preserve surviving duties.', 'አንዱ ወገን በጽሑፍ ካሳወቀ በኋላ ያልተስተካከለ ከባድ ጥሰት ካለ ውሉን ማቋረጥ ይችላል። ሲወጡ ክፍያ፣ ንብረት መመለስ፣ መዝገብ ማስተላለፍና ቀጣይ ግዴታዎች ይፈጸማሉ።', 'Set notice, cure, convenience termination, transition, and survival periods.', 'HIGH'],
+    [ids.clauses.governingLaw, 'GOVERNING_LAW', 'Legal', 'Governing law and dispute process', 'ተፈጻሚ ሕግና የክርክር ሂደት', 'This agreement is governed by the laws of the Federal Democratic Republic of Ethiopia. The parties shall first seek good-faith negotiation before using the agreed dispute forum.', 'ይህ ውል በኢትዮጵያ ፌዴራላዊ ዴሞክራሲያዊ ሪፐብሊክ ሕጎች ይተዳደራል። ወገኖቹ ወደተስማሙበት የክርክር መድረክ ከመሄዳቸው በፊት በቅን ልቦና ይደራደራሉ።', 'Qualified Ethiopian counsel must select the appropriate court, arbitration, seat, and language.', 'HIGH'],
+    [ids.clauses.forceMajeure, 'FORCE_MAJEURE', 'Risk', 'Force majeure', 'ከአቅም በላይ ሁኔታ', 'A party affected by an event beyond reasonable control shall promptly notify the other party, mitigate impact, and resume performance when practicable.', 'በተገቢ ቁጥጥር ውጭ ባለ ክስተት የተጎዳ ወገን ሌላውን ወገን ወዲያውኑ ያሳውቃል፣ ጉዳቱን ይቀንሳል፣ እና ሲቻል አፈጻጸሙን ይቀጥላል።', 'List exclusions and consequences appropriate to the contract.', 'MEDIUM'],
+  ] as const;
+  const clauses = new Map<string, { id: string }>();
+  for (const [id, code, category, titleEn, titleAm, bodyEn, bodyAm, guidance, riskLevel] of clauseSpecs) {
+    const clause = await prisma.clauseLibraryItem.upsert({ where: { organizationId_code: { organizationId: organization.id, code } }, create: { id, organizationId: organization.id, code, category, titleEn, titleAm, bodyEn, bodyAm, guidance, riskLevel }, update: {}, select: { id: true } });
+    clauses.set(code, clause);
+  }
+
+  const templateSpecs = [
+    [ids.templates.services, 'SERVICE_STD', 'Service Agreement', 'Standard service agreement', 'መደበኛ የአገልግሎት ውል', 'A bilingual starting point for recurring professional and operational services.', 'ለሙያዊና ለኦፕሬሽን አገልግሎቶች የሚያገለግል ባለሁለት ቋንቋ መነሻ።', ['PARTIES', 'SCOPE', 'PAYMENT', 'CONFIDENTIALITY', 'TERMINATION', 'GOVERNING_LAW']],
+    [ids.templates.nda, 'NDA_STD', 'Non-disclosure Agreement', 'Mutual confidentiality agreement', 'የጋራ ሚስጥራዊነት ውል', 'A mutual confidentiality and data-handling starting point.', 'የጋራ ሚስጥራዊነትና የመረጃ አያያዝ መነሻ።', ['PARTIES', 'CONFIDENTIALITY', 'DATA_PROTECTION', 'GOVERNING_LAW']],
+    [ids.templates.supply, 'SUPPLY_STD', 'Supply Agreement', 'Goods supply agreement', 'የዕቃ አቅርቦት ውል', 'A structured starting point for local supply and procurement transactions.', 'ለአገር ውስጥ ዕቃ አቅርቦትና ግዥ የሚያገለግል የተዋቀረ መነሻ።', ['PARTIES', 'SCOPE', 'PAYMENT', 'FORCE_MAJEURE', 'TERMINATION', 'GOVERNING_LAW']],
+  ] as const;
+  for (const [id, code, contractType, nameEn, nameAm, descriptionEn, descriptionAm, clauseCodes] of templateSpecs) {
+    const template = await prisma.contractTemplate.upsert({ where: { organizationId_code: { organizationId: organization.id, code } }, create: { id, organizationId: organization.id, code, contractType, nameEn, nameAm, descriptionEn, descriptionAm }, update: {}, select: { id: true } });
+    for (const [index, clauseCode] of clauseCodes.entries()) await prisma.contractTemplateClause.upsert({ where: { templateId_clauseId: { templateId: template.id, clauseId: clauses.get(clauseCode)!.id } }, create: { templateId: template.id, clauseId: clauses.get(clauseCode)!.id, sequence: index + 1 }, update: {} });
   }
 
   const reviews = [
