@@ -159,6 +159,50 @@ enum NotificationDeliveryStatus {
   SKIPPED
 }
 
+enum CounterpartyType {
+  BUSINESS
+  GOVERNMENT
+  NGO
+  INDIVIDUAL
+}
+
+enum CounterpartyStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum NegotiationStatus {
+  OPEN
+  AGREED
+  CLOSED
+}
+
+enum NegotiationItemStatus {
+  OPEN
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum SignaturePacketStatus {
+  DRAFT
+  SENT
+  IN_PROGRESS
+  COMPLETED
+  DECLINED
+  VOIDED
+  EXPIRED
+}
+
+enum SignatureSignerStatus {
+  PENDING
+  SENT
+  VIEWED
+  SIGNED
+  DECLINED
+}
+
 model User {
   id                   String               @id @default(uuid()) @db.Uuid
   identityProvider     String               @map("identity_provider")
@@ -179,6 +223,8 @@ model User {
   acknowledgedAlerts   OperationalAlert[]   @relation("AlertAcknowledger")
   documentRevisions    DocumentRevision[]
   createdAt            DateTime             @default(now()) @map("created_at")
+  negotiationMessages NegotiationMessage[]
+  signaturePackets    SignaturePacket[]    @relation("SignaturePacketCreator")
   updatedAt            DateTime             @updatedAt @map("updated_at")
 
   @@unique([identityProvider, subject])
@@ -208,6 +254,9 @@ model Organization {
   contractTemplates ContractTemplate[]
   notificationRules NotificationRule[]
   notificationDeliveries NotificationDelivery[]
+  counterparties       Counterparty[]
+  negotiations         Negotiation[]
+  signaturePackets     SignaturePacket[]
   createdAt         DateTime             @default(now()) @map("created_at")
   updatedAt         DateTime             @updatedAt @map("updated_at")
 
@@ -369,12 +418,17 @@ model Contract {
   obligations       ContractObligation[]
   renewal           ContractRenewal?
   operationalAlerts OperationalAlert[]
+  counterpartyId    String?              @map("counterparty_id") @db.Uuid
+  counterparty      Counterparty?        @relation(fields: [counterpartyId], references: [id], onDelete: SetNull)
+  negotiations      Negotiation[]
+  signaturePackets  SignaturePacket[]
   createdAt         DateTime             @default(now()) @map("created_at")
   updatedAt         DateTime             @updatedAt @map("updated_at")
 
   @@unique([organizationId, contractNumber])
   @@index([organizationId, status, updatedAt])
   @@index([departmentId, status])
+  @@index([counterpartyId])
   @@map("contracts")
 }
 
@@ -392,12 +446,162 @@ model ContractVersion {
   createdBy        User               @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
   sourceTemplate   ContractTemplate?  @relation(fields: [sourceTemplateId], references: [id], onDelete: SetNull)
   documents        ContractDocument[]
+  negotiations     Negotiation[]
+  signaturePackets SignaturePacket[]
   createdAt        DateTime           @default(now()) @map("created_at")
 
   @@unique([contractId, versionNumber])
   @@index([contractId, createdAt])
   @@index([sourceTemplateId])
   @@map("contract_versions")
+}
+
+model Counterparty {
+  id                 String             @id @default(uuid()) @db.Uuid
+  organizationId     String             @map("organization_id") @db.Uuid
+  legalName          String             @map("legal_name")
+  tradeName          String?            @map("trade_name")
+  type               CounterpartyType   @default(BUSINESS)
+  status             CounterpartyStatus @default(ACTIVE)
+  tin                String?
+  registrationNumber String?            @map("registration_number")
+  country            String             @default("ET")
+  city               String?
+  address            String?
+  riskNote           String?            @map("risk_note")
+  organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contacts           CounterpartyContact[]
+  contracts          Contract[]
+  negotiations       Negotiation[]
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  @@unique([organizationId, legalName])
+  @@index([organizationId, status, legalName])
+  @@map("counterparties")
+}
+
+model CounterpartyContact {
+  id             String       @id @default(uuid()) @db.Uuid
+  counterpartyId String       @map("counterparty_id") @db.Uuid
+  name           String
+  title          String?
+  email          String?
+  phone          String?
+  isPrimary      Boolean      @default(false) @map("is_primary")
+  counterparty   Counterparty @relation(fields: [counterpartyId], references: [id], onDelete: Cascade)
+  signers        SignatureSigner[]
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  @@index([counterpartyId, isPrimary])
+  @@map("counterparty_contacts")
+}
+
+model Negotiation {
+  id                String            @id @default(uuid()) @db.Uuid
+  organizationId    String            @map("organization_id") @db.Uuid
+  contractId        String            @map("contract_id") @db.Uuid
+  contractVersionId String            @map("contract_version_id") @db.Uuid
+  counterpartyId    String?           @map("counterparty_id") @db.Uuid
+  title             String
+  status            NegotiationStatus @default(OPEN)
+  agreedAt          DateTime?         @map("agreed_at")
+  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contract          Contract          @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  contractVersion   ContractVersion   @relation(fields: [contractVersionId], references: [id], onDelete: Restrict)
+  counterparty      Counterparty?     @relation(fields: [counterpartyId], references: [id], onDelete: SetNull)
+  messages          NegotiationMessage[]
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  @@index([organizationId, status, updatedAt])
+  @@index([contractId, status])
+  @@map("negotiations")
+}
+
+model NegotiationMessage {
+  id              String                @id @default(uuid()) @db.Uuid
+  negotiationId   String                @map("negotiation_id") @db.Uuid
+  authorUserId    String                @map("author_user_id") @db.Uuid
+  clauseReference String?               @map("clause_reference")
+  message         String
+  proposedText    String?               @map("proposed_text")
+  status          NegotiationItemStatus @default(OPEN)
+  resolvedAt      DateTime?             @map("resolved_at")
+  negotiation     Negotiation           @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
+  author          User                  @relation(fields: [authorUserId], references: [id], onDelete: Restrict)
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  @@index([negotiationId, status, createdAt])
+  @@map("negotiation_messages")
+}
+
+model SignaturePacket {
+  id                String                @id @default(uuid()) @db.Uuid
+  organizationId    String                @map("organization_id") @db.Uuid
+  contractId        String                @map("contract_id") @db.Uuid
+  contractVersionId String                @map("contract_version_id") @db.Uuid
+  createdByUserId   String                @map("created_by_user_id") @db.Uuid
+  title             String
+  status            SignaturePacketStatus @default(DRAFT)
+  provider          String                @default("INTERNAL_DEMO")
+  providerPacketId  String?               @map("provider_packet_id")
+  documentSha256    String                @map("document_sha256")
+  evidence          Json                  @default("{}")
+  message           String?
+  expiresAt         DateTime?             @map("expires_at")
+  sentAt            DateTime?             @map("sent_at")
+  completedAt       DateTime?             @map("completed_at")
+  voidedAt          DateTime?             @map("voided_at")
+  organization      Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contract          Contract              @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  contractVersion   ContractVersion       @relation(fields: [contractVersionId], references: [id], onDelete: Restrict)
+  createdBy         User                  @relation("SignaturePacketCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  signers           SignatureSigner[]
+  events            SignatureEvent[]
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+
+  @@index([organizationId, status, updatedAt])
+  @@index([contractId, status])
+  @@map("signature_packets")
+}
+
+model SignatureSigner {
+  id                    String                @id @default(uuid()) @db.Uuid
+  packetId              String                @map("packet_id") @db.Uuid
+  counterpartyContactId String?               @map("counterparty_contact_id") @db.Uuid
+  sequence              Int
+  name                  String
+  email                 String
+  role                  String?
+  status                SignatureSignerStatus @default(PENDING)
+  signedAt              DateTime?             @map("signed_at")
+  declinedAt            DateTime?             @map("declined_at")
+  packet                SignaturePacket       @relation(fields: [packetId], references: [id], onDelete: Cascade)
+  counterpartyContact   CounterpartyContact?  @relation(fields: [counterpartyContactId], references: [id], onDelete: SetNull)
+  createdAt             DateTime              @default(now()) @map("created_at")
+  updatedAt             DateTime              @updatedAt @map("updated_at")
+
+  @@unique([packetId, sequence])
+  @@index([packetId, status])
+  @@map("signature_signers")
+}
+
+model SignatureEvent {
+  id         String          @id @default(uuid()) @db.Uuid
+  packetId   String          @map("packet_id") @db.Uuid
+  type       String
+  actorEmail String?         @map("actor_email")
+  externalId String?         @unique @map("external_id")
+  metadata   Json            @default("{}")
+  packet     SignaturePacket @relation(fields: [packetId], references: [id], onDelete: Cascade)
+  createdAt  DateTime        @default(now()) @map("created_at")
+
+  @@index([packetId, createdAt])
+  @@map("signature_events")
 }
 
 model ClauseLibraryItem {

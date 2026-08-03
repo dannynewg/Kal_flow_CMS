@@ -61,4 +61,10 @@ The embedded document workspace shows PDFs beside a governed page editor. DOCX f
 
 Operational alerts can feed organization notification rules for email or SMS. The worker deduplicates each rule/alert pair and posts pending deliveries to the configured provider webhook. Missing providers are recorded as `SKIPPED`; provider errors are recorded as `FAILED` and can be retried from the UI. A delivery is marked `SENT` only after a successful provider response.
 
-Electronic signatures, malware scanning, binary DOCX editing, and file-content comparison remain later phases. Staging must not be promoted to production until document malware scanning, production notification providers, and backup/restore drills are in place.
+Counterparties are organization-scoped legal-party records with contacts, registration metadata, status, and contract history. Linked records cannot be hard-deleted; they are made inactive so contractual evidence remains intact.
+
+Negotiations are bound to one immutable contract version. Each issue can identify a clause, discussion, and proposed replacement wording. All open items must be accepted, rejected, or withdrawn before the negotiation can be marked agreed.
+
+Signature packets are created only from the latest version of an approved or active contract. Kal_flow stores a SHA-256 hash of the frozen text, ordered signers, expiry, provider identity, lifecycle events, and completion evidence. Configure `ESIGN_PROVIDER_WEBHOOK_URL` and its optional bearer secret for production provider handoff. The built-in demo-sign action is test-only and explicitly records that limitation in evidence.
+
+Malware scanning, binary DOCX editing, and file-content comparison remain later phases. Staging must not be promoted to production until document malware scanning, qualified production signing and notification providers, and backup/restore drills are in place.

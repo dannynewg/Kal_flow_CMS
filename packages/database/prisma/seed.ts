@@ -304,6 +304,48 @@ async function main() {
     update: {},
   });
 
+  const counterpartySpecs = [
+    ['11000000-0000-4000-8000-000000000001', 'Lucy Insurance SC', 'BUSINESS', '0023456789', 'Addis Ababa', 'Marta Alemu', 'Corporate Account Director', 'marta.alemu@example.test', '+251911111111'],
+    ['11000000-0000-4000-8000-000000000002', 'Green Horizon Energy PLC', 'BUSINESS', '0054321098', 'Addis Ababa', 'Samuel Getachew', 'Commercial Director', 'samuel.getachew@example.test', '+251922222222'],
+    ['11000000-0000-4000-8000-000000000003', 'Tadesse & Partners Law Office', 'BUSINESS', '0019876543', 'Addis Ababa', 'Liya Tadesse', 'Managing Partner', 'liya.tadesse@example.test', '+251933333333'],
+    ['11000000-0000-4000-8000-000000000004', 'Enat Catering PLC', 'BUSINESS', '0067891234', 'Addis Ababa', 'Eden Assefa', 'General Manager', 'eden.assefa@example.test', '+251944444444'],
+    ['11000000-0000-4000-8000-000000000005', 'Addis Digital Solutions PLC', 'BUSINESS', '0098765432', 'Addis Ababa', 'Bereket Hailu', 'Enterprise Sales Lead', 'bereket.hailu@example.test', '+251955555555'],
+  ] as const;
+  const counterparties = new Map<string, { id: string }>();
+  for (const [id, legalName, type, tin, city, contactName, contactTitle, email, phone] of counterpartySpecs) {
+    const counterparty = await prisma.counterparty.upsert({ where: { organizationId_legalName: { organizationId: organization.id, legalName } }, create: { id, organizationId: organization.id, legalName, type, tin, city, address: `${city}, Ethiopia` }, update: {}, select: { id: true } });
+    counterparties.set(legalName, counterparty);
+    const contactId = id.replace('11000000', '12000000');
+    await prisma.counterpartyContact.upsert({ where: { id: contactId }, create: { id: contactId, counterpartyId: counterparty.id, name: contactName, title: contactTitle, email, phone, isPrimary: true }, update: {} });
+  }
+  for (const [, contractNumber, , , , , counterpartyName] of contractSpecs) {
+    const counterparty = counterparties.get(counterpartyName);
+    if (counterparty) await prisma.contract.updateMany({ where: { id: contracts.get(contractNumber)!.id, counterpartyId: null }, data: { counterpartyId: counterparty.id } });
+  }
+
+  const negotiationId = '13000000-0000-4000-8000-000000000001';
+  await prisma.negotiation.upsert({
+    where: { id: negotiationId },
+    create: { id: negotiationId, organizationId: organization.id, contractId: contracts.get('CON-2026-0003')!.id, contractVersionId: '80000000-0000-4000-8000-000000000003', counterpartyId: counterparties.get('Tadesse & Partners Law Office')!.id, title: 'Fee cap and reimbursable expenses' },
+    update: {},
+  });
+  await prisma.negotiationMessage.upsert({
+    where: { id: '14000000-0000-4000-8000-000000000001' },
+    create: { id: '14000000-0000-4000-8000-000000000001', negotiationId, authorUserId: finance.id, clauseReference: 'Fees and expenses', message: 'Please clarify the annual fee cap and require prior written approval for reimbursable expenses.', proposedText: 'Annual professional fees shall not exceed ETB 4,800,000. Reimbursable expenses require prior written approval and supporting receipts.' },
+    update: {},
+  });
+
+  const signaturePacketId = '15000000-0000-4000-8000-000000000001';
+  const managedServicesContent = versions.find((item) => item[1] === 'CON-2026-0005')![4];
+  await prisma.signaturePacket.upsert({
+    where: { id: signaturePacketId },
+    create: { id: signaturePacketId, organizationId: organization.id, contractId: contracts.get('CON-2026-0005')!.id, contractVersionId: '80000000-0000-4000-8000-000000000005', createdByUserId: manager.id, title: 'Managed IT support — signature packet', documentSha256: tokenHash(managedServicesContent), message: 'Demo packet for ordered signature testing.', expiresAt: dateFromNow(14), signers: { create: [
+      { id: '16000000-0000-4000-8000-000000000001', sequence: 1, name: 'Meron Bekele', email: 'manager@kalflow.local', role: 'Contract Manager' },
+      { id: '16000000-0000-4000-8000-000000000002', sequence: 2, name: 'Bereket Hailu', email: 'bereket.hailu@example.test', role: 'Counterparty Signatory', counterpartyContactId: '12000000-0000-4000-8000-000000000005' },
+    ] }, events: { create: { id: '17000000-0000-4000-8000-000000000001', type: 'PACKET_CREATED', actorEmail: 'manager@kalflow.local', metadata: { demoOnly: true } } } },
+    update: {},
+  });
+
   const auditSpecs = [
     ['a0000000-0000-4000-8000-000000000001', 'demo.seeded', 'organization', organization.id, { source: 'database-seed' }],
     ['a0000000-0000-4000-8000-000000000002', 'contract_request.submitted', 'contract_request', requests.get('REQ-2026-0002')!.id, { requestNumber: 'REQ-2026-0002' }],

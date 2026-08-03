@@ -10,9 +10,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { OperationsModule } from './operations/operations.module';
 import { DraftingModule } from './drafting/drafting.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { CollaborationModule } from './collaboration/collaboration.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, HealthModule, OrganizationsModule, ContractsModule, DraftingModule, OperationsModule, NotificationsModule],
+  imports: [PrismaModule, AuthModule, HealthModule, OrganizationsModule, ContractsModule, DraftingModule, OperationsModule, NotificationsModule, CollaborationModule],
   providers: [
     { provide: APP_GUARD, useClass: AuthenticationGuard },
     { provide: APP_GUARD, useClass: AuthorizationGuard },

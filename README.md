@@ -516,6 +516,7 @@ Contributors should preserve the following principles:
 - [x] Add governed document center and document search
 - [x] Add embedded PDF viewing and versioned multi-page document editing
 - [x] Add auditable email and SMS notification automation with provider webhooks
+- [x] Add governed counterparties, version-bound negotiation, and ordered signature packets
 - [x] Add role-specific local test identities and identity-provider logout
 - [ ] Add calendar integration
 - [ ] Add data import and export

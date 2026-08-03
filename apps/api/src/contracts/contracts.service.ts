@@ -250,6 +250,8 @@ export class ContractsService {
       const contract = await tx.contract.findFirst({ where: { id: contractId, organizationId } });
       if (!contract) throw new NotFoundException('Contract not found');
       if (contract.status !== 'APPROVED') throw new ConflictException('Only an approved contract can be activated');
+      const packets = await tx.signaturePacket.findMany({ where: { contractId }, select: { status: true }, orderBy: { createdAt: 'desc' } });
+      if (packets.length && packets[0]?.status !== 'COMPLETED') throw new ConflictException('Complete the latest signature packet before activating this contract');
       const active = await tx.contract.update({ where: { id: contractId }, data: { status: 'ACTIVE', effectiveDate, expirationDate, activatedAt: new Date() } });
       await this.audit.write(tx, { organizationId, actorUserId: principal.userId, action: 'contract.activated', entityType: 'contract', entityId: contractId, metadata: { effectiveDate: input.effectiveDate, expirationDate: input.expirationDate ?? null } });
       return this.presentContract(active);
