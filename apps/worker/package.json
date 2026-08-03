@@ -9,6 +9,7 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
+    "@kal-flow/database": "workspace:*",
     "bullmq": "^6.0.5",
     "ioredis": "^6.0.0"
   },

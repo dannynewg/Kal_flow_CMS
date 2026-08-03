@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react';
 
 type Locale = 'en' | 'am';
-type View = 'overview' | 'requests' | 'contracts' | 'organization';
+type View = 'overview' | 'requests' | 'contracts' | 'operations' | 'organization';
 type Organization = { id: string; name: string; slug: string; description?: string | null; timezone?: string; status?: string; memberships: { id: string; role: string; status: string }[]; _count?: { departments: number; memberships: number } };
 type Department = { id: string; code: string; name: string; description?: string | null; isActive: boolean; parentId?: string | null; parent?: { id: string; code: string; name: string } | null; _count?: { memberships: number; children: number } };
 type Member = { id: string; role: string; status: string; user: { id?: string; email: string | null; displayName: string | null }; departments?: { department: { id: string; code: string; name: string }; isManager: boolean }[] };
@@ -13,6 +13,10 @@ type ContractRequest = { id: string; requestNumber: string; title: string; descr
 type ReviewStep = { id: string; round: number; sequence: number; name: string; requiredRole: string; status: string; comment?: string | null };
 type DocumentRecord = { id: string; originalName: string; mimeType: string; sizeBytes: string; status: string; createdAt: string };
 type Contract = { id: string; contractNumber: string; title: string; counterpartyName: string; contractType: string; status: string; riskLevel: string; currency: string; valueMinor: string | null; departmentId: string; createdAt?: string; effectiveDate?: string | null; expirationDate?: string | null; versions?: { id: string; versionNumber: number; title: string; createdAt: string }[]; reviewSteps?: ReviewStep[] };
+type Obligation = { id: string; contractId: string; ownerMembershipId: string; kind: 'OBLIGATION' | 'MILESTONE'; title: string; description?: string | null; dueDate: string; priority: string; status: string; completedAt?: string | null; contract: { id: string; contractNumber: string; title: string; department: { id: string; code: string; name: string } }; owner: Member };
+type Renewal = { id: string; contractId: string; renewalType: string; renewalDate: string; noticeDeadline?: string | null; noticePeriodDays?: number | null; decision: string; decisionNote?: string | null; contract: { id: string; contractNumber: string; title: string; expirationDate?: string | null; department: { id: string; code: string; name: string } } };
+type OperationalAlert = { id: string; contractId: string; type: string; severity: string; title: string; dueAt: string; status: string; contract: { id: string; contractNumber: string; title: string } };
+type OperationsReport = { generatedAt: string; summary: { totalObligations: number; completed: number; completionRate: number; overdue: number; dueNext30Days: number; pendingRenewals: number; noticeDeadlinesNext30Days: number; expiringNext90Days: number; openAlerts: number; criticalAlerts: number }; byDepartment: { code: string; name: string; total: number; completed: number; overdue: number }[]; byPriority: { priority: string; count: number }[] };
 
 const copy = {
   en: {
@@ -21,6 +25,11 @@ const copy = {
   am: {
     overview: 'አጠቃላይ', requests: 'ጥያቄዎች', contracts: 'ውሎች', organization: 'ድርጅት', dashboard: 'የአስተዳደር የሥራ ቦታ', newRequest: 'አዲስ ጥያቄ', signOut: 'ውጣ', signedIn: 'የገቡት', empty: 'ከዚህ እይታ ጋር የሚዛመድ መዝገብ የለም።', selectOrganization: 'ድርጅት ይምረጡ', loading: 'የሥራ ቦታዎ እየተዘጋጀ ነው…', title: 'የውል ርዕስ', description: 'የንግድ ፍላጎትና ወሰን', type: 'የውል ዓይነት', counterparty: 'ተዋዋይ ወገን', department: 'ክፍል', value: 'ግምታዊ ዋጋ', effective: 'የሚፈለገው መጀመሪያ ቀን', saveDraft: 'ረቂቅ አስቀምጥ', submit: 'ጥያቄውን አስገባ', triage: 'ጥያቄውን መድብ', convert: 'ውል ፍጠር', addDraft: 'አዲስ ረቂቅ ጨምር', startReview: 'ግምገማ ጀምር', approve: 'አጽድቅ', changes: 'ማሻሻያ ጠይቅ', activate: 'ውሉን ተግባራዊ አድርግ', documents: 'ሰነዶች', upload: 'ሰነድ ስቀል', status: 'ሁኔታ', owner: 'ኃላፊ', refresh: 'አድስ', retry: 'እንደገና ሞክር', welcome: 'እንኳን ደህና መጡ። ትኩረት የሚፈልጉ ሥራዎች እነሆ።', noOrganization: 'ድርጅት ይፍጠሩ ወይም አስተዳዳሪ እንዲጋብዝዎ ይጠይቁ።', selectRecord: 'የሂደቱን ዝርዝር ለማየት መዝገብ ይምረጡ።', actionDone: 'ለውጡ ተቀምጧል።', role: 'የመዳረሻ ደረጃዎ', requestPipeline: 'ክፍት ጥያቄዎች', activeContracts: 'ተግባራዊ ውሎች', pendingReviews: 'በግምገማ ላይ', portfolio: 'የውሎች ጠቅላላ ዋጋ', amountHelp: 'ሙሉ ብር ያስገቡ፤ Kal_flow በሳንቲም ያስቀምጣል።', versionContent: 'የውል ረቂቅ ጽሑፍ', versionSummary: 'የስሪት ማጠቃለያ', reviewHelp: 'የሕግ ግምገማን ተከትሎ የፋይናንስ ማጽደቅ።', comment: 'የውሳኔ አስተያየት', expiration: 'ማብቂያ ቀን', uploadHelp: 'PDF ወይም DOCX፣ እስከ 25 MB።', liveQueue: 'ቅድሚያ የሚሰጣቸው', viewAll: 'ሁሉንም አሳይ', search: 'መዝገብ ይፈልጉ', allStatus: 'ሁሉም ሁኔታዎች', allRisk: 'ሁሉም የስጋት ደረጃዎች', results: 'ውጤቶች', workflow: 'የሥራ ሂደት', details: 'ዝርዝር', businessCase: 'የንግድ ምክንያት', contractHealth: 'የውሎች ጤና', recentActivity: 'የቅርብ ጊዜ እንቅስቃሴ', noActivity: 'የቅርብ ጊዜ እንቅስቃሴ የለም።', profile: 'መገለጫ', departments: 'ክፍሎች', team: 'ቡድንና መዳረሻ', audit: 'የኦዲት ታሪክ', orgSettings: 'የድርጅት ቅንብሮች', orgDescription: 'መግለጫ', timezone: 'የሰዓት ሰቅ', updateProfile: 'መገለጫውን አድስ', addDepartment: 'ክፍል ጨምር', code: 'ኮድ', parentDepartment: 'ዋና ክፍል', inviteMember: 'አባል ጋብዝ', email: 'የኢሜይል አድራሻ', invite: 'ግብዣ ላክ', members: 'አባላት', invitations: 'ግብዣዎች', pendingInvites: 'የሚጠበቁ ግብዣዎች', people: 'ሰዎች', created: 'የተፈጠረበት', revoke: 'ሰርዝ', resend: 'እንደገና ላክ', active: 'ንቁ', suspended: 'የታገደ', quickAction: 'ፈጣን ተግባር', intakeHint: 'የተዋቀረ የውል ጥያቄ በሁለት ደቂቃ ውስጥ ይጀምሩ።', openIntake: 'የውል ጥያቄ ጀምር', pipelineTitle: 'የጥያቄ ሂደት', workflowSubtitle: 'ከጥያቄ እስከ ተግባራዊነት የሚከታተል ግልጽ ሂደት', cancel: 'ተወው', risk: 'ስጋት', versions: 'ስሪቶች', reviewRound: 'የግምገማ ዙር', secureStorage: 'ደህንነቱ የተጠበቀ ማከማቻ', drafting: 'ረቂቅ ዝግጅት', approvalRoute: 'የማጽደቅ መንገድ', legalReview: 'የሕግ ግምገማ', financeApproval: 'የፋይናንስ ማጽደቅ', manager: 'ኃላፊ', member: 'አባል', accessRole: 'የመዳረሻ ሚና', save: 'አስቀምጥ', organizationHealth: 'የድርጅቱ ሁኔታ', departmentsOnline: 'ንቁ ክፍሎች', memberAccess: 'የአባላት መዳረሻ', complianceReady: 'የኦዲት ታሪክ ንቁ ነው', updatedNow: 'አሁን ዘምኗል', menu: 'መዳረሻ ክፈት', close: 'ዝጋ', previous: 'ቀዳሚ', next: 'ቀጣይ'
   }
+} as const;
+
+const operationalCopy = {
+  en: { operations: 'Operations', obligations: 'Obligations', milestones: 'Milestones', renewals: 'Renewals', alerts: 'Alerts', operationalReport: 'Operational report', attention: 'Needs attention', overdue: 'Overdue', dueSoon: 'Due next 30 days', completionRate: 'Completion rate', expiring: 'Expiring in 90 days', addObligation: 'Add obligation or milestone', dueDate: 'Due date', priority: 'Priority', complete: 'Mark complete', acknowledge: 'Acknowledge', configureRenewal: 'Configure renewal', renewalDate: 'Renewal date', noticeDeadline: 'Notice deadline', renewalDecision: 'Renewal decision', reportingSubtitle: 'Live accountability across commitments, dates, renewals, and contract expiry.', allItems: 'All items', openItems: 'Open items', noOperationalData: 'No operational records match this view.', performanceByDepartment: 'Performance by department', evidenceNote: 'Completion evidence or note', renewalBoard: 'Renewal decision board' },
+  am: { operations: 'ክትትል', obligations: 'ግዴታዎች', milestones: 'የሂደት ደረጃዎች', renewals: 'እድሳት', alerts: 'ማስጠንቀቂያዎች', operationalReport: 'የአፈጻጸም ሪፖርት', attention: 'ትኩረት የሚፈልጉ', overdue: 'ጊዜያቸው ያለፈ', dueSoon: 'በ30 ቀን ውስጥ', completionRate: 'የማጠናቀቅ መጠን', expiring: 'በ90 ቀን የሚያበቁ', addObligation: 'ግዴታ ወይም የሂደት ደረጃ ጨምር', dueDate: 'የማጠናቀቂያ ቀን', priority: 'ቅድሚያ', complete: 'ተጠናቋል በል', acknowledge: 'ታውቋል', configureRenewal: 'እድሳት አዋቅር', renewalDate: 'የእድሳት ቀን', noticeDeadline: 'የማሳወቂያ ገደብ', renewalDecision: 'የእድሳት ውሳኔ', reportingSubtitle: 'ግዴታዎችን፣ ቀናትን፣ እድሳትንና የውል ማብቂያን በቀጥታ ይከታተሉ።', allItems: 'ሁሉም', openItems: 'ክፍት ሥራዎች', noOperationalData: 'ከዚህ እይታ ጋር የሚዛመድ የክትትል መዝገብ የለም።', performanceByDepartment: 'በክፍል የተከፋፈለ አፈጻጸም', evidenceNote: 'የማጠናቀቂያ ማስረጃ ወይም ማስታወሻ', renewalBoard: 'የእድሳት ውሳኔ ሰሌዳ' },
 } as const;
 
 const roles = ['ADMIN', 'CONTRACT_MANAGER', 'LEGAL_OFFICER', 'DEPARTMENT_MANAGER', 'FINANCE_OFFICER', 'PROCUREMENT_OFFICER', 'CONTRACT_OWNER', 'AUDITOR', 'VIEWER'];
@@ -42,7 +51,7 @@ const canAdmin = (role: string) => ['OWNER', 'ADMIN'].includes(role);
 const canDepartment = (role: string) => ['OWNER', 'ADMIN', 'DEPARTMENT_MANAGER'].includes(role);
 
 export function ContractWorkspace({ locale, email, signOutAction }: { locale: Locale; email: string; signOutAction: () => Promise<void> }) {
-  const t = copy[locale];
+  const t = { ...copy[locale], ...operationalCopy[locale] };
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [organizationId, setOrganizationId] = useState('');
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -51,6 +60,10 @@ export function ContractWorkspace({ locale, email, signOutAction }: { locale: Lo
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [requests, setRequests] = useState<ContractRequest[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
+  const [obligations, setObligations] = useState<Obligation[]>([]);
+  const [renewals, setRenewals] = useState<Renewal[]>([]);
+  const [operationalAlerts, setOperationalAlerts] = useState<OperationalAlert[]>([]);
+  const [operationsReport, setOperationsReport] = useState<OperationsReport | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<ContractRequest | null>(null);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
@@ -93,9 +106,17 @@ export function ContractWorkspace({ locale, email, signOutAction }: { locale: Lo
       const extras = await Promise.allSettled([
         api<Invitation[]>(`organizations/${organizationId}/invitations`),
         api<{ items: AuditEvent[] }>(`organizations/${organizationId}/audit-events?limit=50`),
+        api<Obligation[]>(`organizations/${organizationId}/obligations`),
+        api<Renewal[]>(`organizations/${organizationId}/renewals`),
+        api<OperationalAlert[]>(`organizations/${organizationId}/operational-alerts`),
+        api<OperationsReport>(`organizations/${organizationId}/reports/operations`),
       ]);
       setInvitations(extras[0].status === 'fulfilled' ? extras[0].value : []);
       setAuditEvents(extras[1].status === 'fulfilled' ? extras[1].value.items : []);
+      setObligations(extras[2].status === 'fulfilled' ? extras[2].value : []);
+      setRenewals(extras[3].status === 'fulfilled' ? extras[3].value : []);
+      setOperationalAlerts(extras[4].status === 'fulfilled' ? extras[4].value : []);
+      setOperationsReport(extras[5].status === 'fulfilled' ? extras[5].value : null);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to load workspace'); }
   }, [organizationId]);
 
@@ -154,6 +175,7 @@ export function ContractWorkspace({ locale, email, signOutAction }: { locale: Lo
     { key: 'overview', label: t.overview, icon: '⌂' },
     { key: 'requests', label: t.requests, icon: '↗', badge: metrics.requests },
     { key: 'contracts', label: t.contracts, icon: '▤' },
+    { key: 'operations', label: t.operations, icon: '◷', badge: operationalAlerts.filter((item) => item.status === 'OPEN').length },
     { key: 'organization', label: t.organization, icon: '◎' },
   ];
 
@@ -194,6 +216,7 @@ export function ContractWorkspace({ locale, email, signOutAction }: { locale: Lo
             {view === 'requests' ? <RequestDetail request={selectedRequest} role={role} members={members} t={t} busy={busy} run={run} organizationId={organizationId} reload={loadWorkspace} onContract={async (id) => { await refreshContract(id); setView('contracts'); }} locale={locale} /> : <ContractDetail contract={selectedContract} documents={documents} role={role} t={t} busy={busy} organizationId={organizationId} run={run} refreshContract={refreshContract} uploadDocument={uploadDocument} locale={locale} />}
           </section>
         </>}
+        {view === 'operations' && <OperationsView locale={locale} t={t} organizationId={organizationId} role={role} contracts={contracts} members={members} obligations={obligations} renewals={renewals} alerts={operationalAlerts} report={operationsReport} busy={busy} run={run} reload={loadWorkspace} />}
         {view === 'organization' && <OrganizationView locale={locale} t={t} organization={currentOrganization!} organizationId={organizationId} role={role} departments={departments} members={members} invitations={invitations} auditEvents={auditEvents} tab={organizationTab} setTab={setOrganizationTab} busy={busy} run={run} reload={async () => { await loadOrganizations(); await loadWorkspace(); }} />}
       </>}
     </main>
@@ -260,6 +283,52 @@ function ContractDetail({ contract, documents, role, t, busy, organizationId, ru
     {contract.status === 'APPROVED' && canTriage(role) && <section className="action-card compact"><label>{t.effective}<input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} /></label><label>{t.expiration}<input type="date" value={expirationDate} onChange={(e) => setExpirationDate(e.target.value)} /></label><button className="primary" disabled={busy || !effectiveDate} onClick={() => void run(() => api(`${endpoint}/activate`, { method: 'POST', body: JSON.stringify({ effectiveDate, expirationDate: expirationDate || undefined }) }), () => refreshContract(contract.id))}>{t.activate}</button></section>}
     <section className="documents"><div className="panel-head"><div><span className="kicker">{t.secureStorage}</span><h3>{t.documents}</h3><small>{t.uploadHelp}</small></div></div>{documents.length ? documents.map((document) => <button className="document-row" key={document.id} onClick={() => void run(async () => { const result = await api<{ url: string }>(`${endpoint}/documents/${document.id}/download`); window.open(result.url, '_blank', 'noopener,noreferrer'); })}><span className="file-icon">{document.mimeType.includes('pdf') ? 'PDF' : 'DOC'}</span><div><strong>{document.originalName}</strong><small>{(Number(document.sizeBytes) / 1024 / 1024).toFixed(2)} MB · {labelize(document.status)}</small></div><span>↓</span></button>) : <div className="table-empty compact-empty"><p>{t.empty}</p></div>}<form className="upload" onSubmit={(event) => void uploadDocument(event)}><input name="file" type="file" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required /><button className="primary" disabled={busy} type="submit">{t.upload}</button></form></section>
   </article>;
+}
+
+type OperationsCopy = Record<keyof typeof copy.en | keyof typeof operationalCopy.en, string>;
+
+function OperationsView({ locale, t, organizationId, role, contracts, members, obligations, renewals, alerts, report, busy, run, reload }: { locale: Locale; t: OperationsCopy; organizationId: string; role: string; contracts: Contract[]; members: Member[]; obligations: Obligation[]; renewals: Renewal[]; alerts: OperationalAlert[]; report: OperationsReport | null; busy: boolean; run: (action: () => Promise<unknown>, after?: () => Promise<void>) => Promise<void>; reload: () => Promise<void> }) {
+  const [tab, setTab] = useState<'obligations' | 'renewals' | 'report'>('obligations');
+  const [scope, setScope] = useState<'ALL' | 'OPEN' | 'OVERDUE'>('OPEN');
+  const canEdit = ['OWNER', 'ADMIN', 'CONTRACT_MANAGER', 'CONTRACT_OWNER', 'DEPARTMENT_MANAGER', 'FINANCE_OFFICER'].includes(role);
+  const canRenew = ['OWNER', 'ADMIN', 'CONTRACT_MANAGER', 'CONTRACT_OWNER', 'LEGAL_OFFICER'].includes(role);
+  const now = new Date();
+  const visible = obligations.filter((item) => scope === 'ALL' || (scope === 'OPEN' && !['COMPLETED', 'WAIVED'].includes(item.status)) || (scope === 'OVERDUE' && !['COMPLETED', 'WAIVED'].includes(item.status) && new Date(item.dueDate) < now));
+  const date = (value: string) => new Intl.DateTimeFormat(locale === 'am' ? 'am-ET' : 'en-ET', { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(value));
+  const activeContracts = contracts.filter((item) => ['APPROVED', 'ACTIVE'].includes(item.status));
+
+  const createObligation = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); const element = event.currentTarget; const form = new FormData(element); const contractId = String(form.get('contractId'));
+    void run(() => api(`organizations/${organizationId}/contracts/${contractId}/obligations`, { method: 'POST', body: JSON.stringify({ ownerMembershipId: form.get('ownerMembershipId'), kind: form.get('kind'), title: form.get('title'), description: form.get('description') || undefined, dueDate: form.get('dueDate'), priority: form.get('priority'), reminderDays: [30, 14, 7] }) }), async () => { element.reset(); await reload(); });
+  };
+  const configureRenewal = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); const element = event.currentTarget; const form = new FormData(element); const contractId = String(form.get('contractId'));
+    void run(() => api(`organizations/${organizationId}/contracts/${contractId}/renewal`, { method: 'PUT', body: JSON.stringify({ renewalType: form.get('renewalType'), renewalDate: form.get('renewalDate'), noticeDeadline: form.get('noticeDeadline') || undefined }) }), async () => { element.reset(); await reload(); });
+  };
+
+  return <div className="operations-view">
+    <section className="operations-hero"><div><span className="eyebrow-dot"><i /> {t.operationalReport}</span><h2>{t.operations}</h2><p>{t.reportingSubtitle}</p></div><div className="ops-score"><strong>{report?.summary.completionRate ?? 0}%</strong><span>{t.completionRate}</span></div></section>
+    <section className="ops-metrics" aria-label={t.operationalReport}>
+      <article className="ops-metric danger"><span>!</span><div><small>{t.overdue}</small><strong>{report?.summary.overdue ?? 0}</strong></div></article>
+      <article className="ops-metric amber"><span>◷</span><div><small>{t.dueSoon}</small><strong>{report?.summary.dueNext30Days ?? 0}</strong></div></article>
+      <article className="ops-metric violet"><span>↻</span><div><small>{t.renewals}</small><strong>{report?.summary.pendingRenewals ?? 0}</strong></div></article>
+      <article className="ops-metric mint"><span>⌁</span><div><small>{t.expiring}</small><strong>{report?.summary.expiringNext90Days ?? 0}</strong></div></article>
+    </section>
+
+    {alerts.length > 0 && <section className="attention-strip"><div className="attention-title"><span>!</span><div><small>{t.attention}</small><strong>{alerts.filter((item) => item.status === 'OPEN').length} {t.alerts.toLowerCase()}</strong></div></div><div className="alert-cards">{alerts.slice(0, 4).map((alert) => <article className={`alert-card severity-${alert.severity.toLowerCase()}`} key={alert.id}><div><span>{labelize(alert.type)}</span><strong>{alert.title}</strong><small>{alert.contract.contractNumber} · {date(alert.dueAt)}</small></div>{alert.status === 'OPEN' && canEdit && <button disabled={busy} onClick={() => void run(() => api(`organizations/${organizationId}/operational-alerts/${alert.id}/acknowledge`, { method: 'POST', body: '{}' }), reload)}>{t.acknowledge}</button>}</article>)}</div></section>}
+
+    <div className="ops-tabs" role="tablist"><button className={tab === 'obligations' ? 'active' : ''} role="tab" aria-selected={tab === 'obligations'} onClick={() => setTab('obligations')}>{t.obligations} <b>{obligations.length}</b></button><button className={tab === 'renewals' ? 'active' : ''} role="tab" aria-selected={tab === 'renewals'} onClick={() => setTab('renewals')}>{t.renewals} <b>{renewals.length}</b></button><button className={tab === 'report' ? 'active' : ''} role="tab" aria-selected={tab === 'report'} onClick={() => setTab('report')}>{t.operationalReport}</button></div>
+
+    {tab === 'obligations' && <div className="ops-content-grid"><section className="panel obligations-panel"><div className="panel-head"><div><span className="kicker">{t.openItems}</span><h2>{t.obligations} & {t.milestones}</h2></div><div className="scope-switch"><button className={scope === 'ALL' ? 'active' : ''} onClick={() => setScope('ALL')}>{t.allItems}</button><button className={scope === 'OPEN' ? 'active' : ''} onClick={() => setScope('OPEN')}>{t.openItems}</button><button className={scope === 'OVERDUE' ? 'active' : ''} onClick={() => setScope('OVERDUE')}>{t.overdue}</button></div></div><div className="obligation-list">{visible.length ? visible.map((item) => { const overdue = !['COMPLETED', 'WAIVED'].includes(item.status) && new Date(item.dueDate) < now; return <article key={item.id} className={overdue ? 'is-overdue' : ''}><span className={`kind-icon kind-${item.kind.toLowerCase()}`}>{item.kind === 'MILESTONE' ? '◆' : '✓'}</span><div className="obligation-main"><span className="reference">{item.contract.contractNumber} · {item.contract.department.code}</span><strong>{item.title}</strong><small>{item.owner.user.displayName ?? item.owner.user.email} · {labelize(item.kind)}</small></div><div className="obligation-date"><small>{t.dueDate}</small><strong>{date(item.dueDate)}</strong><span className={`priority priority-${item.priority.toLowerCase()}`}>{labelize(item.priority)}</span></div><Status value={item.status} />{canEdit && !['COMPLETED', 'WAIVED'].includes(item.status) && <button className="complete-button" disabled={busy} onClick={() => { const note = window.prompt(t.evidenceNote) ?? undefined; void run(() => api(`organizations/${organizationId}/obligations/${item.id}/complete`, { method: 'POST', body: JSON.stringify({ note }) }), reload); }}>{t.complete}</button>}</article>; }) : <div className="table-empty"><p>{t.noOperationalData}</p></div>}</div></section>
+      {canEdit && <section className="panel create-card ops-create"><span className="kicker">{t.addObligation}</span><h2>{t.addObligation}</h2><form onSubmit={createObligation}><label>{t.contracts}<select name="contractId" required><option value="">—</option>{contracts.filter((item) => item.status !== 'CANCELLED').map((item) => <option value={item.id} key={item.id}>{item.contractNumber} · {item.title}</option>)}</select></label><div className="form-pair"><label>{t.type}<select name="kind"><option value="OBLIGATION">{t.obligations}</option><option value="MILESTONE">{t.milestones}</option></select></label><label>{t.priority}<select name="priority"><option>MEDIUM</option><option>HIGH</option><option>CRITICAL</option><option>LOW</option></select></label></div><label>{t.title}<input name="title" minLength={3} required /></label><label>{t.description}<textarea name="description" rows={3} /></label><label>{t.owner}<select name="ownerMembershipId" required><option value="">—</option>{members.filter((item) => item.status === 'ACTIVE').map((item) => <option value={item.id} key={item.id}>{item.user.displayName ?? item.user.email}</option>)}</select></label><label>{t.dueDate}<input name="dueDate" type="date" required /></label><button className="primary" disabled={busy} type="submit">＋ {t.addObligation}</button></form></section>}
+    </div>}
+
+    {tab === 'renewals' && <div className="ops-content-grid"><section className="panel renewal-panel"><div className="panel-head"><div><span className="kicker">{t.renewalBoard}</span><h2>{t.renewals}</h2></div></div><div className="renewal-list">{renewals.length ? renewals.map((item) => <article key={item.id}><div className="renewal-date"><span>{new Date(item.renewalDate).getDate()}</span><small>{new Intl.DateTimeFormat(locale === 'am' ? 'am-ET' : 'en-ET', { month: 'short' }).format(new Date(item.renewalDate))}</small></div><div><span className="reference">{item.contract.contractNumber} · {item.contract.department.code}</span><strong>{item.contract.title}</strong><small>{labelize(item.renewalType)} · {t.noticeDeadline}: {item.noticeDeadline ? date(item.noticeDeadline) : '—'}</small></div><Status value={item.decision} />{canRenew && item.decision === 'PENDING' && <div className="renewal-actions"><button onClick={() => void run(() => api(`organizations/${organizationId}/renewals/${item.id}/decision`, { method: 'POST', body: JSON.stringify({ decision: 'TERMINATE' }) }), reload)}>Terminate</button><button onClick={() => void run(() => api(`organizations/${organizationId}/renewals/${item.id}/decision`, { method: 'POST', body: JSON.stringify({ decision: 'RENEGOTIATE' }) }), reload)}>Renegotiate</button><button className="primary" onClick={() => void run(() => api(`organizations/${organizationId}/renewals/${item.id}/decision`, { method: 'POST', body: JSON.stringify({ decision: 'RENEW' }) }), reload)}>Renew</button></div>}</article>) : <div className="table-empty"><p>{t.noOperationalData}</p></div>}</div></section>
+      {canRenew && <section className="panel create-card ops-create"><span className="kicker">{t.configureRenewal}</span><h2>{t.configureRenewal}</h2><form onSubmit={configureRenewal}><label>{t.contracts}<select name="contractId" required><option value="">—</option>{activeContracts.map((item) => <option value={item.id} key={item.id}>{item.contractNumber} · {item.title}</option>)}</select></label><label>{t.type}<select name="renewalType"><option value="MANUAL_RENEW">Manual renew</option><option value="AUTO_RENEW">Auto renew</option><option value="NON_RENEWING">Non-renewing</option></select></label><label>{t.renewalDate}<input type="date" name="renewalDate" required /></label><label>{t.noticeDeadline}<input type="date" name="noticeDeadline" /></label><button className="primary" disabled={busy} type="submit">↻ {t.configureRenewal}</button></form></section>}
+    </div>}
+
+    {tab === 'report' && <div className="report-grid"><section className="panel department-report"><div className="panel-head"><div><span className="kicker">{t.operationalReport}</span><h2>{t.performanceByDepartment}</h2></div><small>{report ? date(report.generatedAt) : '—'}</small></div><div>{report?.byDepartment.map((row) => { const percent = row.total ? Math.round(row.completed / row.total * 100) : 0; return <article key={row.code}><span className="department-code">{row.code}</span><div><strong>{row.name}</strong><div className="report-bar"><i style={{ width: `${percent}%` }} /></div><small>{row.completed}/{row.total} {t.complete.toLowerCase()}</small></div><b className={row.overdue ? 'has-overdue' : ''}>{row.overdue} {t.overdue.toLowerCase()}</b></article>; })}</div></section><section className="report-summary"><div className="report-ring" style={{ '--progress': `${(report?.summary.completionRate ?? 0) * 3.6}deg` } as CSSProperties}><span>{report?.summary.completionRate ?? 0}%</span></div><h3>{t.completionRate}</h3><p>{report?.summary.completed ?? 0} / {report?.summary.totalObligations ?? 0} {t.obligations.toLowerCase()}</p><ul>{report?.byPriority.map((item) => <li key={item.priority}><span className={`priority priority-${item.priority.toLowerCase()}`}>{labelize(item.priority)}</span><strong>{item.count}</strong></li>)}</ul></section></div>}
+  </div>;
 }
 
 function OrganizationView({ locale, t, organization, organizationId, role, departments, members, invitations, auditEvents, tab, setTab, busy, run, reload }: { locale: Locale; t: typeof copy.en | typeof copy.am; organization: Organization; organizationId: string; role: string; departments: Department[]; members: Member[]; invitations: Invitation[]; auditEvents: AuditEvent[]; tab: 'profile' | 'departments' | 'team' | 'audit'; setTab: (tab: 'profile' | 'departments' | 'team' | 'audit') => void; busy: boolean; run: (action: () => Promise<unknown>, after?: () => Promise<void>) => Promise<void>; reload: () => Promise<void> }) {

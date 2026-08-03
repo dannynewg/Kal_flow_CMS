@@ -7,9 +7,10 @@ import { HealthModule } from './health/health.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { OperationsModule } from './operations/operations.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, HealthModule, OrganizationsModule, ContractsModule],
+  imports: [PrismaModule, AuthModule, HealthModule, OrganizationsModule, ContractsModule, OperationsModule],
   providers: [
     { provide: APP_GUARD, useClass: AuthenticationGuard },
     { provide: APP_GUARD, useClass: AuthorizationGuard },

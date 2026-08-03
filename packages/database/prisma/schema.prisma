@@ -75,23 +75,77 @@ enum DocumentStatus {
   QUARANTINED
 }
 
+enum ObligationKind {
+  OBLIGATION
+  MILESTONE
+}
+
+enum ObligationStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  WAIVED
+}
+
+enum ObligationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RenewalType {
+  AUTO_RENEW
+  MANUAL_RENEW
+  NON_RENEWING
+}
+
+enum RenewalDecision {
+  PENDING
+  RENEW
+  RENEGOTIATE
+  TERMINATE
+}
+
+enum OperationalAlertType {
+  OBLIGATION_DUE
+  OBLIGATION_OVERDUE
+  NOTICE_DEADLINE
+  CONTRACT_EXPIRY
+}
+
+enum OperationalAlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum OperationalAlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
 model User {
-  id                  String               @id @default(uuid()) @db.Uuid
-  identityProvider    String               @map("identity_provider")
-  subject             String
-  email               String?
-  displayName         String?              @map("display_name")
-  memberships         Membership[]
-  sentInvitations     Invitation[]         @relation("InvitationInviter")
-  acceptedInvitations Invitation[]         @relation("InvitationAccepter")
-  auditEvents         AuditEvent[]
-  requestedContracts  ContractRequest[]    @relation("ContractRequester")
-  triagedRequests     ContractRequest[]    @relation("ContractRequestAssignee")
-  contractReviews     ContractReviewStep[]
-  createdVersions     ContractVersion[]
-  uploadedDocuments   ContractDocument[]
-  createdAt           DateTime             @default(now()) @map("created_at")
-  updatedAt           DateTime             @updatedAt @map("updated_at")
+  id                   String               @id @default(uuid()) @db.Uuid
+  identityProvider     String               @map("identity_provider")
+  subject              String
+  email                String?
+  displayName          String?              @map("display_name")
+  memberships          Membership[]
+  sentInvitations      Invitation[]         @relation("InvitationInviter")
+  acceptedInvitations  Invitation[]         @relation("InvitationAccepter")
+  auditEvents          AuditEvent[]
+  requestedContracts   ContractRequest[]    @relation("ContractRequester")
+  triagedRequests      ContractRequest[]    @relation("ContractRequestAssignee")
+  contractReviews      ContractReviewStep[]
+  createdVersions      ContractVersion[]
+  uploadedDocuments    ContractDocument[]
+  completedObligations ContractObligation[] @relation("ObligationCompleter")
+  renewalDecisions     ContractRenewal[]    @relation("RenewalDecisionMaker")
+  acknowledgedAlerts   OperationalAlert[]   @relation("AlertAcknowledger")
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
 
   @@unique([identityProvider, subject])
   @@index([email])
@@ -99,38 +153,42 @@ model User {
 }
 
 model Organization {
-  id               String             @id @default(uuid()) @db.Uuid
-  slug             String             @unique
-  name             String
-  description      String?
-  timezone         String             @default("Africa/Addis_Ababa")
-  settings         Json               @default("{}")
-  status           OrganizationStatus @default(ACTIVE)
-  memberships      Membership[]
-  departments      Department[]
-  invitations      Invitation[]
-  auditEvents      AuditEvent[]
-  contractRequests ContractRequest[]
-  contracts        Contract[]
-  documents        ContractDocument[]
-  createdAt        DateTime           @default(now()) @map("created_at")
-  updatedAt        DateTime           @updatedAt @map("updated_at")
+  id                String               @id @default(uuid()) @db.Uuid
+  slug              String               @unique
+  name              String
+  description       String?
+  timezone          String               @default("Africa/Addis_Ababa")
+  settings          Json                 @default("{}")
+  status            OrganizationStatus   @default(ACTIVE)
+  memberships       Membership[]
+  departments       Department[]
+  invitations       Invitation[]
+  auditEvents       AuditEvent[]
+  contractRequests  ContractRequest[]
+  contracts         Contract[]
+  documents         ContractDocument[]
+  obligations       ContractObligation[]
+  renewals          ContractRenewal[]
+  operationalAlerts OperationalAlert[]
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
 
   @@map("organizations")
 }
 
 model Membership {
-  id             String                 @id @default(uuid()) @db.Uuid
-  organizationId String                 @map("organization_id") @db.Uuid
-  userId         String                 @map("user_id") @db.Uuid
-  role           OrganizationRole
-  status         MembershipStatus       @default(ACTIVE)
-  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  departments    DepartmentMembership[]
-  ownedContracts Contract[]
-  createdAt      DateTime               @default(now()) @map("created_at")
-  updatedAt      DateTime               @updatedAt @map("updated_at")
+  id                  String                 @id @default(uuid()) @db.Uuid
+  organizationId      String                 @map("organization_id") @db.Uuid
+  userId              String                 @map("user_id") @db.Uuid
+  role                OrganizationRole
+  status              MembershipStatus       @default(ACTIVE)
+  organization        Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user                User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  departments         DepartmentMembership[]
+  ownedContracts      Contract[]
+  assignedObligations ContractObligation[]
+  createdAt           DateTime               @default(now()) @map("created_at")
+  updatedAt           DateTime               @updatedAt @map("updated_at")
 
   @@unique([organizationId, userId])
   @@index([userId, status])
@@ -270,6 +328,9 @@ model Contract {
   versions          ContractVersion[]
   reviewSteps       ContractReviewStep[]
   documents         ContractDocument[]
+  obligations       ContractObligation[]
+  renewal           ContractRenewal?
+  operationalAlerts OperationalAlert[]
   createdAt         DateTime             @default(now()) @map("created_at")
   updatedAt         DateTime             @updatedAt @map("updated_at")
 
@@ -341,4 +402,84 @@ model ContractReviewStep {
   @@unique([contractId, round, sequence])
   @@index([assignedUserId, status])
   @@map("contract_review_steps")
+}
+
+model ContractObligation {
+  id                String             @id @default(uuid()) @db.Uuid
+  organizationId    String             @map("organization_id") @db.Uuid
+  contractId        String             @map("contract_id") @db.Uuid
+  ownerMembershipId String             @map("owner_membership_id") @db.Uuid
+  kind              ObligationKind     @default(OBLIGATION)
+  title             String
+  description       String?
+  dueDate           DateTime           @map("due_date") @db.Date
+  priority          ObligationPriority @default(MEDIUM)
+  status            ObligationStatus   @default(OPEN)
+  reminderDays      Int[]              @default([30, 14, 7]) @map("reminder_days")
+  completionNote    String?            @map("completion_note")
+  completedAt       DateTime?          @map("completed_at")
+  completedByUserId String?            @map("completed_by_user_id") @db.Uuid
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contract          Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  owner             Membership         @relation(fields: [ownerMembershipId], references: [id], onDelete: Restrict)
+  completedBy       User?              @relation("ObligationCompleter", fields: [completedByUserId], references: [id], onDelete: SetNull)
+  alerts            OperationalAlert[]
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  @@index([organizationId, status, dueDate])
+  @@index([contractId, dueDate])
+  @@index([ownerMembershipId, status, dueDate])
+  @@map("contract_obligations")
+}
+
+model ContractRenewal {
+  id               String             @id @default(uuid()) @db.Uuid
+  organizationId   String             @map("organization_id") @db.Uuid
+  contractId       String             @unique @map("contract_id") @db.Uuid
+  renewalType      RenewalType        @map("renewal_type")
+  renewalDate      DateTime           @map("renewal_date") @db.Date
+  noticeDeadline   DateTime?          @map("notice_deadline") @db.Date
+  noticePeriodDays Int?               @map("notice_period_days")
+  decision         RenewalDecision    @default(PENDING)
+  decisionNote     String?            @map("decision_note")
+  decisionAt       DateTime?          @map("decision_at")
+  decidedByUserId  String?            @map("decided_by_user_id") @db.Uuid
+  organization     Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contract         Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  decidedBy        User?              @relation("RenewalDecisionMaker", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+  alerts           OperationalAlert[]
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  @@index([organizationId, decision, renewalDate])
+  @@index([organizationId, noticeDeadline])
+  @@map("contract_renewals")
+}
+
+model OperationalAlert {
+  id                   String                   @id @default(uuid()) @db.Uuid
+  organizationId       String                   @map("organization_id") @db.Uuid
+  contractId           String                   @map("contract_id") @db.Uuid
+  obligationId         String?                  @map("obligation_id") @db.Uuid
+  renewalId            String?                  @map("renewal_id") @db.Uuid
+  dedupeKey            String                   @unique @map("dedupe_key")
+  type                 OperationalAlertType
+  severity             OperationalAlertSeverity
+  title                String
+  dueAt                DateTime                 @map("due_at")
+  status               OperationalAlertStatus   @default(OPEN)
+  acknowledgedAt       DateTime?                @map("acknowledged_at")
+  acknowledgedByUserId String?                  @map("acknowledged_by_user_id") @db.Uuid
+  organization         Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contract             Contract                 @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  obligation           ContractObligation?      @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  renewal              ContractRenewal?         @relation(fields: [renewalId], references: [id], onDelete: Cascade)
+  acknowledgedBy       User?                    @relation("AlertAcknowledger", fields: [acknowledgedByUserId], references: [id], onDelete: SetNull)
+  createdAt            DateTime                 @default(now()) @map("created_at")
+  updatedAt            DateTime                 @updatedAt @map("updated_at")
+
+  @@index([organizationId, status, severity, dueAt])
+  @@index([contractId, status])
+  @@map("operational_alerts")
 }

@@ -34,6 +34,14 @@ const ids = {
     operations: '40000000-0000-4000-8000-000000000005',
     hr: '40000000-0000-4000-8000-000000000006',
   },
+  obligations: {
+    insuranceCertificate: 'b0000000-0000-4000-8000-000000000001',
+    solarDesign: 'b0000000-0000-4000-8000-000000000002',
+    monthlySla: 'b0000000-0000-4000-8000-000000000003',
+    hygieneAudit: 'b0000000-0000-4000-8000-000000000004',
+    quarterlyReview: 'b0000000-0000-4000-8000-000000000005',
+    exitPlan: 'b0000000-0000-4000-8000-000000000006',
+  },
 };
 
 async function seedUser(id: string, subject: string, email: string, displayName: string) {
@@ -222,12 +230,42 @@ async function main() {
     });
   }
 
+  const obligationSpecs = [
+    [ids.obligations.insuranceCertificate, 'CON-2026-0001', 'OBLIGATION', 'Submit final insurance certificate', 'Provide the executed coverage certificate and member schedule.', -5, 'HIGH', 'OPEN', memberships.get(manager.id)!.id],
+    [ids.obligations.solarDesign, 'CON-2026-0002', 'MILESTONE', 'Approve detailed solar system design', 'Engineering design review and written acceptance before procurement.', 7, 'CRITICAL', 'IN_PROGRESS', memberships.get(legal.id)!.id],
+    [ids.obligations.monthlySla, 'CON-2026-0005', 'OBLIGATION', 'Deliver monthly SLA report', 'Report incidents, response times, availability, and unresolved service credits.', 14, 'MEDIUM', 'OPEN', memberships.get(manager.id)!.id],
+    [ids.obligations.hygieneAudit, 'CON-2026-0004', 'MILESTONE', 'Complete quarterly kitchen hygiene audit', 'Document the joint inspection and close corrective actions.', 30, 'HIGH', 'OPEN', memberships.get(procurement.id)!.id],
+    [ids.obligations.quarterlyReview, 'CON-2026-0004', 'OBLIGATION', 'Quarterly service performance review', 'Confirm service quality, volume, and invoice reconciliation.', -20, 'MEDIUM', 'COMPLETED', memberships.get(manager.id)!.id],
+    [ids.obligations.exitPlan, 'CON-2026-0005', 'MILESTONE', 'Validate service exit and handover plan', 'Confirm data export, knowledge transfer, and transition responsibilities.', 75, 'LOW', 'OPEN', memberships.get(manager.id)!.id],
+  ] as const;
+  for (const [id, contractNumber, kind, title, description, dueInDays, priority, status, ownerMembershipId] of obligationSpecs) {
+    await prisma.contractObligation.upsert({
+      where: { id },
+      create: { id, organizationId: organization.id, contractId: contracts.get(contractNumber)!.id, ownerMembershipId, kind, title, description, dueDate: dateFromNow(dueInDays), priority, status, reminderDays: [30, 14, 7], ...(status === 'COMPLETED' ? { completedAt: dateFromNow(-18), completedByUserId: manager.id, completionNote: 'Performance review completed and minutes filed.' } : {}) },
+      update: {},
+    });
+  }
+
+  const renewalSpecs = [
+    ['c0000000-0000-4000-8000-000000000001', 'CON-2026-0004', 'AUTO_RENEW', 58, 28, 30, 'PENDING'],
+    ['c0000000-0000-4000-8000-000000000002', 'CON-2026-0005', 'MANUAL_RENEW', 120, 60, 60, 'RENEGOTIATE'],
+  ] as const;
+  for (const [id, contractNumber, renewalType, renewalInDays, noticeInDays, noticePeriodDays, decision] of renewalSpecs) {
+    await prisma.contractRenewal.upsert({
+      where: { contractId: contracts.get(contractNumber)!.id },
+      create: { id, organizationId: organization.id, contractId: contracts.get(contractNumber)!.id, renewalType, renewalDate: dateFromNow(renewalInDays), noticeDeadline: dateFromNow(noticeInDays), noticePeriodDays, decision, ...(decision !== 'PENDING' ? { decisionAt: dateFromNow(-3), decidedByUserId: admin.id, decisionNote: 'Renegotiate pricing and service-credit terms before renewal.' } : {}) },
+      update: {},
+    });
+  }
+
   const auditSpecs = [
     ['a0000000-0000-4000-8000-000000000001', 'demo.seeded', 'organization', organization.id, { source: 'database-seed' }],
     ['a0000000-0000-4000-8000-000000000002', 'contract_request.submitted', 'contract_request', requests.get('REQ-2026-0002')!.id, { requestNumber: 'REQ-2026-0002' }],
     ['a0000000-0000-4000-8000-000000000003', 'contract.review_started', 'contract', contracts.get('CON-2026-0002')!.id, { round: 1 }],
     ['a0000000-0000-4000-8000-000000000004', 'contract.review_changes_requested', 'contract', contracts.get('CON-2026-0003')!.id, { round: 1, sequence: 2 }],
     ['a0000000-0000-4000-8000-000000000005', 'contract.activated', 'contract', contracts.get('CON-2026-0004')!.id, { contractNumber: 'CON-2026-0004' }],
+    ['a0000000-0000-4000-8000-000000000006', 'obligation.completed', 'contract_obligation', ids.obligations.quarterlyReview, { contractNumber: 'CON-2026-0004' }],
+    ['a0000000-0000-4000-8000-000000000007', 'renewal.configured', 'contract_renewal', 'c0000000-0000-4000-8000-000000000001', { contractNumber: 'CON-2026-0004' }],
   ] as const;
   for (const [id, action, entityType, entityId, metadata] of auditSpecs) {
     const exists = await prisma.auditEvent.findUnique({ where: { id }, select: { id: true } });
