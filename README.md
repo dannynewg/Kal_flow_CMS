@@ -502,7 +502,7 @@ Contributors should preserve the following principles:
 - [x] Add expiration and renewal alerts
 - [ ] Add counterparty management
 - [x] Add operational dashboards and reports
-- [ ] Add document search
+- [x] Add governed document center and document search
 - [ ] Add calendar, email, and SMS integrations
 - [ ] Add data import and export
 - [x] Add an application API

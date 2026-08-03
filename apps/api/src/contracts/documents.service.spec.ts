@@ -42,4 +42,22 @@ describe('DocumentsService security boundaries', () => {
     expect(client.contractDocument.findFirst).toHaveBeenCalledWith({ where: { id: 'document-1', organizationId: 'org-other', contractId: 'contract-1', status: 'AVAILABLE' } });
     expect(storage.createDownloadUrl).not.toHaveBeenCalled();
   });
+
+  it('scopes document-center search to one organization', async () => {
+    const findMany = vi.fn().mockResolvedValue([{ id: 'document-1', sizeBytes: 1200n, contract: { contractNumber: 'CON-1' } }]);
+    const { service } = serviceWith({ contractDocument: { findMany } });
+    await expect(service.search('org-1', { query: 'supplier', category: 'SUPPORTING' as never })).resolves.toEqual([{ id: 'document-1', sizeBytes: '1200', contract: { contractNumber: 'CON-1' } }]);
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ organizationId: 'org-1', category: 'SUPPORTING' }) }));
+  });
+
+  it('archives metadata without deleting the stored file', async () => {
+    const existing = { id: 'document-1', contractId: 'contract-1', sha256: 'abc', status: 'AVAILABLE' };
+    const archived = { ...existing, sizeBytes: 50n, status: 'ARCHIVED' };
+    const tx = { contractDocument: { update: vi.fn().mockResolvedValue(archived) } };
+    const client = { contractDocument: { findFirst: vi.fn().mockResolvedValue(existing) }, $transaction: (callback: (value: typeof tx) => unknown) => callback(tx) };
+    const { service, audit, storage } = serviceWith(client);
+    await expect(service.archive('org-1', 'document-1', principal)).resolves.toMatchObject({ status: 'ARCHIVED', sizeBytes: '50' });
+    expect(audit.write).toHaveBeenCalledWith(tx, expect.objectContaining({ action: 'contract.document_archived', organizationId: 'org-1' }));
+    expect(storage.put).not.toHaveBeenCalled();
+  });
 });

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react';
 
 type Locale = 'en' | 'am';
-type View = 'overview' | 'requests' | 'contracts' | 'library' | 'operations' | 'organization';
+type View = 'overview' | 'requests' | 'contracts' | 'documents' | 'library' | 'operations' | 'organization';
 type Organization = { id: string; name: string; slug: string; description?: string | null; timezone?: string; status?: string; memberships: { id: string; role: string; status: string }[]; _count?: { departments: number; memberships: number } };
 type Department = { id: string; code: string; name: string; description?: string | null; isActive: boolean; parentId?: string | null; parent?: { id: string; code: string; name: string } | null; _count?: { memberships: number; children: number } };
 type Member = { id: string; role: string; status: string; user: { id?: string; email: string | null; displayName: string | null }; departments?: { department: { id: string; code: string; name: string }; isManager: boolean }[] };
@@ -11,7 +11,7 @@ type Invitation = { id: string; email: string; role: string; status: string; exp
 type AuditEvent = { id: string; action: string; entityType: string; createdAt: string; actor?: { email: string | null; displayName: string | null } | null };
 type ContractRequest = { id: string; requestNumber: string; title: string; description: string; contractType: string; counterpartyName: string; estimatedValueMinor: string | null; currency: string; riskLevel: string; status: string; departmentId: string; createdAt?: string; department?: Department; assignedTo?: { displayName: string | null; email: string | null } | null; contract?: { id: string; contractNumber: string; status: string } | null };
 type ReviewStep = { id: string; round: number; sequence: number; name: string; requiredRole: string; status: string; comment?: string | null };
-type DocumentRecord = { id: string; originalName: string; mimeType: string; sizeBytes: string; status: string; createdAt: string };
+type DocumentRecord = { id: string; contractId?: string; originalName: string; title?: string | null; description?: string | null; category?: string; confidentiality?: string; tags?: string[]; retentionUntil?: string | null; mimeType: string; sizeBytes: string; sha256?: string; status: string; createdAt: string; uploadedBy?: { email: string | null; displayName: string | null }; contract?: { id: string; contractNumber: string; title: string; counterpartyName: string; department: { id: string; code: string; name: string } } };
 type ContractVersion = { id: string; versionNumber: number; title: string; summary?: string | null; content?: string; changeNote?: string | null; createdAt: string };
 type Contract = { id: string; contractNumber: string; title: string; counterpartyName: string; contractType: string; status: string; riskLevel: string; currency: string; valueMinor: string | null; departmentId: string; createdAt?: string; effectiveDate?: string | null; expirationDate?: string | null; versions?: ContractVersion[]; reviewSteps?: ReviewStep[] };
 type ClauseItem = { id: string; code: string; category: string; titleEn: string; titleAm: string; bodyEn: string; bodyAm: string; guidance?: string | null; riskLevel: string; status: string };
@@ -41,7 +41,12 @@ const draftingCopy = {
   am: { library: 'የረቂቅ ቤተ መዝገብ', templates: 'አብነቶች', clauseLibrary: 'የውል አንቀጽ ቤተ መዝገብ', draftingSubtitle: 'በድርጅቱ የተገመገመ ባለሁለት ቋንቋ የውል ጽሑፍ ይገንቡ።', templateCoverage: 'የአብነት ሽፋን', standardClauses: 'መደበኛ አንቀጾች', bilingualReady: 'ለሁለት ቋንቋ ዝግጁ', legalNotice: 'የሙከራ አንቀጾቹ በሥራ ላይ ከመዋላቸው በፊት ብቁ የኢትዮጵያ የሕግ ባለሙያ ሊገመግማቸው ይገባል።', useTemplate: 'ከአብነት ረቂቅ ፍጠር', language: 'የረቂቅ ቋንቋ', bilingual: 'እንግሊዝኛ + አማርኛ', createClause: 'አንቀጽ ፍጠር', createTemplate: 'አብነት ፍጠር', category: 'ምድብ', englishTitle: 'የእንግሊዝኛ ርዕስ', amharicTitle: 'የአማርኛ ርዕስ', englishBody: 'የእንግሊዝኛ ጽሑፍ', amharicBody: 'የአማርኛ ጽሑፍ', guidance: 'የግምገማ መመሪያ', clauseOrder: 'አንቀጾች በቅደም ተከተል', compareVersions: 'ስሪቶችን አወዳድር', fromVersion: 'ከስሪት', toVersion: 'እስከ ስሪት', compare: 'አወዳድር', additions: 'የተጨመሩ', removals: 'የተወገዱ', unchanged: 'ያልተለወጡ መስመሮች', noComparison: 'የጽሑፍ ለውጦችን ለማየት ሁለት ስሪቶችን ይምረጡ።', generatedDraft: 'አብነቱ እንደ አዲስ የማይለወጥ ረቂቅ ስሪት ታክሏል።' },
 } as const;
 
-type WorkspaceCopy = Record<keyof typeof copy.en | keyof typeof operationalCopy.en | keyof typeof draftingCopy.en, string>;
+const documentCopy = {
+  en: { documentCenter: 'Document center', documentSubtitle: 'Search, classify, retain, and audit every contract file from one governed workspace.', allDocuments: 'All documents', activeFiles: 'Active files', archivedFiles: 'Archived', restrictedFiles: 'Restricted', category: 'Category', confidentiality: 'Confidentiality', retention: 'Retention date', tags: 'Tags', editMetadata: 'Edit metadata', archive: 'Archive', download: 'Download', fileName: 'File name', uploadedBy: 'Uploaded by', checksum: 'Integrity fingerprint', noDocuments: 'Upload a PDF or DOCX from a contract to begin the governed repository.', documentSearch: 'Search title, contract, counterparty, or tag', classification: 'Classification' },
+  am: { documentCenter: 'የሰነድ ማዕከል', documentSubtitle: 'ሁሉንም የውል ሰነዶች በአንድ ቁጥጥር ሥር ፈልጉ፣ መድቡ፣ ያቆዩ እና ይከታተሉ።', allDocuments: 'ሁሉም ሰነዶች', activeFiles: 'ንቁ ፋይሎች', archivedFiles: 'የተመዘገቡ', restrictedFiles: 'የተገደቡ', category: 'ምድብ', confidentiality: 'የምስጢርነት ደረጃ', retention: 'የማቆያ ቀን', tags: 'መለያዎች', editMetadata: 'ዝርዝር አርትዕ', archive: 'መዝገብ', download: 'አውርድ', fileName: 'የፋይል ስም', uploadedBy: 'የሰቀለው', checksum: 'የታማኝነት አሻራ', noDocuments: 'የቁጥጥር ሰነድ ማከማቻውን ለመጀመር PDF ወይም DOCX ከውል ውስጥ ይስቀሉ።', documentSearch: 'በርዕስ፣ ውል፣ ተዋዋይ ወገን ወይም መለያ ፈልግ', classification: 'ምደባ' },
+} as const;
+
+type WorkspaceCopy = Record<keyof typeof copy.en | keyof typeof operationalCopy.en | keyof typeof draftingCopy.en | keyof typeof documentCopy.en, string>;
 
 const roles = ['ADMIN', 'CONTRACT_MANAGER', 'LEGAL_OFFICER', 'DEPARTMENT_MANAGER', 'FINANCE_OFFICER', 'PROCUREMENT_OFFICER', 'CONTRACT_OWNER', 'AUDITOR', 'VIEWER'];
 const requestStages = ['DRAFT', 'SUBMITTED', 'TRIAGED', 'CONVERTED'];
@@ -62,7 +67,7 @@ const canAdmin = (role: string) => ['OWNER', 'ADMIN'].includes(role);
 const canDepartment = (role: string) => ['OWNER', 'ADMIN', 'DEPARTMENT_MANAGER'].includes(role);
 
 export function ContractWorkspace({ locale, email, signOutAction }: { locale: Locale; email: string; signOutAction: () => Promise<void> }) {
-  const t = { ...copy[locale], ...operationalCopy[locale], ...draftingCopy[locale] };
+  const t = { ...copy[locale], ...operationalCopy[locale], ...draftingCopy[locale], ...documentCopy[locale] };
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [organizationId, setOrganizationId] = useState('');
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -80,6 +85,7 @@ export function ContractWorkspace({ locale, email, signOutAction }: { locale: Lo
   const [selectedRequest, setSelectedRequest] = useState<ContractRequest | null>(null);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
+  const [repositoryDocuments, setRepositoryDocuments] = useState<DocumentRecord[]>([]);
   const [view, setView] = useState<View>('overview');
   const [organizationTab, setOrganizationTab] = useState<'profile' | 'departments' | 'team' | 'audit'>('profile');
   const [showIntake, setShowIntake] = useState(false);
@@ -125,6 +131,7 @@ export function ContractWorkspace({ locale, email, signOutAction }: { locale: Lo
         api<OperationsReport>(`organizations/${organizationId}/reports/operations`),
         api<ClauseItem[]>(`organizations/${organizationId}/clause-library`),
         api<ContractTemplate[]>(`organizations/${organizationId}/contract-templates`),
+        api<DocumentRecord[]>(`organizations/${organizationId}/documents`),
       ]);
       setInvitations(extras[0].status === 'fulfilled' ? extras[0].value : []);
       setAuditEvents(extras[1].status === 'fulfilled' ? extras[1].value.items : []);
@@ -134,6 +141,7 @@ export function ContractWorkspace({ locale, email, signOutAction }: { locale: Lo
       setOperationsReport(extras[5].status === 'fulfilled' ? extras[5].value : null);
       setClauses(extras[6].status === 'fulfilled' ? extras[6].value : []);
       setTemplates(extras[7].status === 'fulfilled' ? extras[7].value : []);
+      setRepositoryDocuments(extras[8].status === 'fulfilled' ? extras[8].value : []);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to load workspace'); }
   }, [organizationId]);
 
@@ -192,6 +200,7 @@ export function ContractWorkspace({ locale, email, signOutAction }: { locale: Lo
     { key: 'overview', label: t.overview, icon: '⌂' },
     { key: 'requests', label: t.requests, icon: '↗', badge: metrics.requests },
     { key: 'contracts', label: t.contracts, icon: '▤' },
+    { key: 'documents', label: t.documentCenter, icon: '▧', badge: repositoryDocuments.filter((item) => item.status === 'AVAILABLE').length },
     { key: 'library', label: t.library, icon: '◇', badge: templates.length },
     { key: 'operations', label: t.operations, icon: '◷', badge: operationalAlerts.filter((item) => item.status === 'OPEN').length },
     { key: 'organization', label: t.organization, icon: '◎' },
@@ -235,6 +244,7 @@ export function ContractWorkspace({ locale, email, signOutAction }: { locale: Lo
           </section>
         </>}
         {view === 'library' && <DraftingLibraryView locale={locale} t={t} organizationId={organizationId} role={role} clauses={clauses} templates={templates} busy={busy} run={run} reload={loadWorkspace} />}
+        {view === 'documents' && <DocumentCenterView locale={locale} t={t} organizationId={organizationId} role={role} documents={repositoryDocuments} busy={busy} run={run} reload={loadWorkspace} />}
         {view === 'operations' && <OperationsView locale={locale} t={t} organizationId={organizationId} role={role} contracts={contracts} members={members} obligations={obligations} renewals={renewals} alerts={operationalAlerts} report={operationsReport} busy={busy} run={run} reload={loadWorkspace} />}
         {view === 'organization' && <OrganizationView locale={locale} t={t} organization={currentOrganization!} organizationId={organizationId} role={role} departments={departments} members={members} invitations={invitations} auditEvents={auditEvents} tab={organizationTab} setTab={setOrganizationTab} busy={busy} run={run} reload={async () => { await loadOrganizations(); await loadWorkspace(); }} />}
       </>}
@@ -332,6 +342,33 @@ function DraftingLibraryView({ locale, t, organizationId, role, clauses, templat
 }
 
 type OperationsCopy = WorkspaceCopy;
+
+function DocumentCenterView({ locale, t, organizationId, role, documents, busy, run, reload }: { locale: Locale; t: WorkspaceCopy; organizationId: string; role: string; documents: DocumentRecord[]; busy: boolean; run: (action: () => Promise<unknown>, after?: () => Promise<void>) => Promise<void>; reload: () => Promise<void> }) {
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState('ALL');
+  const [status, setStatus] = useState('ALL');
+  const canEdit = ['OWNER', 'ADMIN', 'CONTRACT_MANAGER', 'CONTRACT_OWNER', 'LEGAL_OFFICER'].includes(role);
+  const needle = query.trim().toLowerCase();
+  const visible = documents.filter((document) => {
+    const haystack = [document.title, document.originalName, document.description, document.contract?.contractNumber, document.contract?.title, document.contract?.counterpartyName, ...(document.tags ?? [])].filter(Boolean).join(' ').toLowerCase();
+    return (!needle || haystack.includes(needle)) && (category === 'ALL' || document.category === category) && (status === 'ALL' || document.status === status);
+  });
+  const active = documents.filter((item) => item.status === 'AVAILABLE').length;
+  const archived = documents.filter((item) => item.status === 'ARCHIVED').length;
+  const restricted = documents.filter((item) => item.confidentiality === 'RESTRICTED').length;
+  const date = (value: string) => new Intl.DateTimeFormat(locale === 'am' ? 'am-ET' : 'en-ET', { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(value));
+  const update = (event: FormEvent<HTMLFormElement>, documentId: string) => {
+    event.preventDefault(); const form = new FormData(event.currentTarget);
+    void run(() => api(`organizations/${organizationId}/documents/${documentId}`, { method: 'PATCH', body: JSON.stringify({ title: form.get('title'), description: form.get('description') || undefined, category: form.get('category'), confidentiality: form.get('confidentiality'), tags: String(form.get('tags') ?? '').split(',').map((tag) => tag.trim()).filter(Boolean), retentionUntil: form.get('retentionUntil') || undefined }) }), reload);
+  };
+  const download = (documentId: string) => void run(async () => { const result = await api<{ url: string }>(`organizations/${organizationId}/documents/${documentId}/download`); window.open(result.url, '_blank', 'noopener,noreferrer'); });
+  return <div className="document-center">
+    <section className="document-hero"><div><span className="eyebrow-dot"><i /> {t.secureStorage}</span><h2>{t.documentCenter}</h2><p>{t.documentSubtitle}</p></div><div className="document-vault" aria-hidden="true"><span>▧</span><small>SHA-256</small></div></section>
+    <section className="document-metrics"><article><span>▤</span><div><small>{t.allDocuments}</small><strong>{documents.length}</strong></div></article><article className="mint"><span>✓</span><div><small>{t.activeFiles}</small><strong>{active}</strong></div></article><article className="lilac"><span>◇</span><div><small>{t.archivedFiles}</small><strong>{archived}</strong></div></article><article className="peach"><span>⌾</span><div><small>{t.restrictedFiles}</small><strong>{restricted}</strong></div></article></section>
+    <section className="document-toolbar" aria-label={t.search}><label className="search-field"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.documentSearch} /></label><select aria-label={t.category} value={category} onChange={(event) => setCategory(event.target.value)}><option value="ALL">{t.allDocuments}</option>{['CONTRACT','AMENDMENT','SUPPORTING','EVIDENCE','CORRESPONDENCE','OTHER'].map((value) => <option key={value}>{labelize(value)}</option>)}</select><select aria-label={t.status} value={status} onChange={(event) => setStatus(event.target.value)}><option value="ALL">{t.allStatus}</option><option value="AVAILABLE">{t.activeFiles}</option><option value="ARCHIVED">{t.archivedFiles}</option></select><b>{visible.length} {t.results}</b></section>
+    <section className="document-grid">{visible.length ? visible.map((document) => <article className="document-card" key={document.id}><div className="document-card-head"><span className={`file-tile ${document.mimeType.includes('pdf') ? 'pdf' : 'docx'}`}>{document.mimeType.includes('pdf') ? 'PDF' : 'DOCX'}</span><div><span className="reference">{document.contract?.contractNumber} · {document.contract?.department.code}</span><h3>{document.title || document.originalName}</h3><p>{document.contract?.title}</p></div><Status value={document.status} /></div><div className="document-chips"><span>{labelize(document.category ?? 'CONTRACT')}</span><span className={`conf-${(document.confidentiality ?? 'INTERNAL').toLowerCase()}`}>{labelize(document.confidentiality ?? 'INTERNAL')}</span>{document.tags?.slice(0, 3).map((tag) => <span key={tag}>#{tag}</span>)}</div><dl><div><dt>{t.fileName}</dt><dd>{document.originalName}</dd></div><div><dt>{t.uploadedBy}</dt><dd>{document.uploadedBy?.displayName ?? document.uploadedBy?.email ?? '—'}</dd></div><div><dt>{t.created}</dt><dd>{date(document.createdAt)}</dd></div><div><dt>{t.retention}</dt><dd>{document.retentionUntil ? date(document.retentionUntil) : '—'}</dd></div></dl><div className="fingerprint" title={document.sha256}><span>{t.checksum}</span><code>{document.sha256?.slice(0, 16) ?? '—'}…</code></div><div className="document-actions"><button className="primary" onClick={() => download(document.id)}>↓ {t.download}</button>{canEdit && <details><summary>{t.editMetadata}</summary><form onSubmit={(event) => update(event, document.id)}><label>{t.title}<input name="title" defaultValue={document.title ?? document.originalName} minLength={2} required /></label><label>{t.description}<textarea name="description" defaultValue={document.description ?? ''} rows={2} /></label><div className="form-pair"><label>{t.category}<select name="category" defaultValue={document.category ?? 'CONTRACT'}>{['CONTRACT','AMENDMENT','SUPPORTING','EVIDENCE','CORRESPONDENCE','OTHER'].map((value) => <option key={value}>{value}</option>)}</select></label><label>{t.confidentiality}<select name="confidentiality" defaultValue={document.confidentiality ?? 'INTERNAL'}><option>INTERNAL</option><option>CONFIDENTIAL</option><option>RESTRICTED</option></select></label></div><label>{t.tags}<input name="tags" defaultValue={document.tags?.join(', ')} placeholder="signed, finance, 2026" /></label><label>{t.retention}<input name="retentionUntil" type="date" defaultValue={document.retentionUntil?.slice(0, 10)} /></label><button className="primary" disabled={busy} type="submit">{t.save}</button></form></details>}{canEdit && document.status === 'AVAILABLE' && <button disabled={busy} onClick={() => void run(() => api(`organizations/${organizationId}/documents/${document.id}/archive`, { method: 'POST', body: '{}' }), reload)}>{t.archive}</button>}</div></article>) : <div className="panel table-empty document-empty"><span>▧</span><h3>{t.noDocuments}</h3></div>}</section>
+  </div>;
+}
 
 function OperationsView({ locale, t, organizationId, role, contracts, members, obligations, renewals, alerts, report, busy, run, reload }: { locale: Locale; t: OperationsCopy; organizationId: string; role: string; contracts: Contract[]; members: Member[]; obligations: Obligation[]; renewals: Renewal[]; alerts: OperationalAlert[]; report: OperationsReport | null; busy: boolean; run: (action: () => Promise<unknown>, after?: () => Promise<void>) => Promise<void>; reload: () => Promise<void> }) {
   const [tab, setTab] = useState<'obligations' | 'renewals' | 'report'>('obligations');

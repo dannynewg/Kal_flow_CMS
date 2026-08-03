@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { CurrentPrincipal } from '../auth/current-principal.decorator';
@@ -6,7 +6,7 @@ import type { AuthenticatedPrincipal } from '../auth/principal';
 import { RequirePermissions } from '../authorization/require-permissions.decorator';
 import { ContractsService } from './contracts.service';
 import { DocumentsService } from './documents.service';
-import { ActivateContractDto, ConvertContractRequestDto, CreateContractRequestDto, CreateContractVersionDto, DecideReviewStepDto, StartContractReviewDto, TriageContractRequestDto, UpdateContractRequestDto } from './dto';
+import { ActivateContractDto, ConvertContractRequestDto, CreateContractRequestDto, CreateContractVersionDto, DecideReviewStepDto, SearchDocumentsDto, StartContractReviewDto, TriageContractRequestDto, UpdateContractRequestDto, UpdateDocumentDto } from './dto';
 
 @ApiTags('contract requests')
 @ApiBearerAuth('keycloak')
@@ -99,5 +99,32 @@ export class ContractsController {
   @Post(':contractId/activate') @RequirePermissions('contract.activate')
   activate(@Param('organizationId') organizationId: string, @Param('contractId') contractId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal, @Body() input: ActivateContractDto) {
     return this.contracts.activate(organizationId, contractId, principal, input);
+  }
+}
+
+@ApiTags('document center')
+@ApiBearerAuth('keycloak')
+@Controller({ path: 'organizations/:organizationId/documents', version: '1' })
+export class DocumentCenterController {
+  constructor(private readonly documents: DocumentsService) {}
+
+  @Get() @RequirePermissions('document.read')
+  search(@Param('organizationId') organizationId: string, @Query() query: SearchDocumentsDto) {
+    return this.documents.search(organizationId, query);
+  }
+
+  @Patch(':documentId') @RequirePermissions('document.manage')
+  update(@Param('organizationId') organizationId: string, @Param('documentId') documentId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal, @Body() input: UpdateDocumentDto) {
+    return this.documents.update(organizationId, documentId, principal, input);
+  }
+
+  @Post(':documentId/archive') @RequirePermissions('document.manage')
+  archive(@Param('organizationId') organizationId: string, @Param('documentId') documentId: string, @CurrentPrincipal() principal: AuthenticatedPrincipal) {
+    return this.documents.archive(organizationId, documentId, principal);
+  }
+
+  @Get(':documentId/download') @RequirePermissions('document.read')
+  download(@Param('organizationId') organizationId: string, @Param('documentId') documentId: string) {
+    return this.documents.downloadByOrganization(organizationId, documentId);
   }
 }

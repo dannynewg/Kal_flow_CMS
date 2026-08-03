@@ -1,4 +1,4 @@
-import { ContractRiskLevel, OrganizationRole } from '@kal-flow/database';
+import { ContractRiskLevel, DocumentCategory, DocumentConfidentiality, OrganizationRole } from '@kal-flow/database';
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsEnum, IsIn, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -59,4 +59,20 @@ export class DecideReviewStepDto {
 export class ActivateContractDto {
   @IsDateString() effectiveDate!: string;
   @IsOptional() @IsDateString() expirationDate?: string;
+}
+
+export class SearchDocumentsDto {
+  @IsOptional() @IsString() @MaxLength(120) query?: string;
+  @IsOptional() @IsEnum(DocumentCategory) category?: DocumentCategory;
+  @IsOptional() @IsEnum(DocumentConfidentiality) confidentiality?: DocumentConfidentiality;
+  @IsOptional() @IsIn(['AVAILABLE', 'ARCHIVED', 'QUARANTINED']) status?: 'AVAILABLE' | 'ARCHIVED' | 'QUARANTINED';
+}
+
+export class UpdateDocumentDto {
+  @IsOptional() @IsString() @MinLength(2) @MaxLength(180) title?: string;
+  @IsOptional() @IsString() @MaxLength(1000) description?: string;
+  @IsOptional() @IsEnum(DocumentCategory) category?: DocumentCategory;
+  @IsOptional() @IsEnum(DocumentConfidentiality) confidentiality?: DocumentConfidentiality;
+  @IsOptional() @IsArray() @ArrayMaxSize(12) @IsString({ each: true }) @MaxLength(40, { each: true }) tags?: string[];
+  @IsOptional() @IsDateString() retentionUntil?: string;
 }

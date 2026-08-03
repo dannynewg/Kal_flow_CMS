@@ -73,6 +73,22 @@ enum DocumentStatus {
   PENDING
   AVAILABLE
   QUARANTINED
+  ARCHIVED
+}
+
+enum DocumentCategory {
+  CONTRACT
+  AMENDMENT
+  SUPPORTING
+  EVIDENCE
+  CORRESPONDENCE
+  OTHER
+}
+
+enum DocumentConfidentiality {
+  INTERNAL
+  CONFIDENTIAL
+  RESTRICTED
 }
 
 enum ObligationKind {
@@ -434,10 +450,16 @@ model ContractDocument {
   uploadedByUserId  String           @map("uploaded_by_user_id") @db.Uuid
   objectKey         String           @unique @map("object_key")
   originalName      String           @map("original_name")
+  title             String?
+  description       String?
+  category          DocumentCategory @default(CONTRACT)
+  confidentiality   DocumentConfidentiality @default(INTERNAL)
+  tags              String[]         @default([])
   mimeType          String           @map("mime_type")
   sizeBytes         BigInt           @map("size_bytes")
   sha256            String
   status            DocumentStatus   @default(PENDING)
+  retentionUntil    DateTime?        @map("retention_until") @db.Date
   organization      Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   contract          Contract         @relation(fields: [contractId], references: [id], onDelete: Cascade)
   contractVersion   ContractVersion? @relation(fields: [contractVersionId], references: [id], onDelete: SetNull)
@@ -446,6 +468,7 @@ model ContractDocument {
   updatedAt         DateTime         @updatedAt @map("updated_at")
 
   @@index([organizationId, contractId, createdAt])
+  @@index([organizationId, status, category, createdAt])
   @@index([contractVersionId])
   @@map("contract_documents")
 }

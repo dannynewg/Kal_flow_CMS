@@ -36,6 +36,9 @@ The requester may cancel their own request while it is still draft or submitted.
 | List documents | `GET .../contracts/:contractId/documents` | `document.read` |
 | Upload PDF/DOCX | `POST .../contracts/:contractId/documents` | `document.upload` |
 | Create signed download | `GET .../contracts/:contractId/documents/:documentId/download` | `document.read` |
+| Search governed repository | `GET /v1/organizations/:organizationId/documents` | `document.read` |
+| Update classification metadata | `PATCH .../documents/:documentId` | `document.manage` |
+| Archive a document | `POST .../documents/:documentId/archive` | `document.manage` |
 
 All endpoints also require an active membership in the active organization. IDs for departments, owners, assignees, contracts, requests, and review steps are resolved inside that organization boundary.
 
@@ -52,4 +55,6 @@ All endpoints also require an active membership in the active organization. IDs 
 
 PDF and DOCX attachments are stored under randomized tenant/contract object keys. The API validates type and size, computes a SHA-256 fingerprint, writes metadata to PostgreSQL, and issues five-minute signed download URLs without exposing storage credentials. Upload audit metadata includes the fingerprint and never includes document bytes.
 
-Templates, clause composition, electronic signatures, malware scanning, and file comparison remain later phases. Staging must not be promoted to production until document malware scanning and backup/restore drills are in place.
+The organization document center searches filenames, titles, descriptions, tags, contract references, titles, and counterparties inside the active tenant. Authorized users can assign category, confidentiality, normalized tags, and a retention date. Archival is a reversible metadata state: it never deletes the object, and both metadata changes and archival produce append-only audit events. Quarantined files are excluded from downloads and cannot be edited or archived.
+
+Electronic signatures, malware scanning, and file-content comparison remain later phases. Staging must not be promoted to production until document malware scanning and backup/restore drills are in place.
